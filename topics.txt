@@ -1,0 +1,17 @@
+
+topics per i quali il device connector è publisher (e le control strategies sono subscriber):
+
+MyGreenFridge/userID/fridgeID/sensorID/temperature
+MyGreenFridge/userID/fridgeID/sensorID/humidity
+MyGreenFridge/userID/fridgeID/sensorID/camera0
+MyGreenFridge/userID/fridgeID/sensorID/camera1
+
+topics per i quali le control strategies sono publisher:
+
+MyGreenFridge/userID/fridgeID/sensorID/EAN0
+MyGreenFridge/userID/fridgeID/sensorID/EAN1
+MyGreenFridge/userID/fridgeID/sensorID/Tcontrol
+MyGreenFridge/userID/fridgeID/sensorID/Hcontrol
+
+
+
