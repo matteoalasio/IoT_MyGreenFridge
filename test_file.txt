@@ -1,0 +1,1 @@
+{"broker_IP": "192.168.1.254", "broker_port": 1883, "users": [{"nickname": "Martina", "ID": "110995"}, {"nickname": "Stefano", "ID": "200194"}, {"ID": "210896", "nickname": "Piera"}], "fridges": [{"user": "110995", "ID": "8888", "sensors": {"sensor_ID": "456", "Type": "Humidity", "Value": "12"}, "products": [], "insert-timestamp": "", "IP": "", "port": ""}], "last_edit": 0}
