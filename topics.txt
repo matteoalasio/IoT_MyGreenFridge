@@ -1,17 +1,32 @@
 
-topics per i quali il device connector è publisher (e le control strategies sono subscriber):
+Topics per i quali il Device Connector è publisher (e le control strategies sono subscriber):
 
-MyGreenFridge/userID/fridgeID/sensorID/temperature
-MyGreenFridge/userID/fridgeID/sensorID/humidity
-MyGreenFridge/userID/fridgeID/sensorID/camera0
-MyGreenFridge/userID/fridgeID/sensorID/camera1
+1. MyGreenFridge/userID/fridgeID/sensorID/temperature
+DeviceConnector è il publisher; TemperatureControlWebService è il subscriber
 
-topics per i quali le control strategies sono publisher:
+2. MyGreenFridge/userID/fridgeID/sensorID/humidity
+DeviceConnector è il publisher; HumidityControlWebService è il subscriber
 
-MyGreenFridge/userID/fridgeID/sensorID/EAN0
-MyGreenFridge/userID/fridgeID/sensorID/EAN1
-MyGreenFridge/userID/fridgeID/sensorID/Tcontrol
-MyGreenFridge/userID/fridgeID/sensorID/Hcontrol
+3. MyGreenFridge/userID/fridgeID/sensorID/camera0
+DeviceConnector è il publisher; ProductsControlWebService è il subscriber
 
+4. MyGreenFridge/userID/fridgeID/sensorID/camera1
+DeviceConnector è il publisher; ConsumptionControlWebService è il subscriber
+
+
+
+Topics per i quali le control strategies sono publisher:
+
+1. MyGreenFridge/userID/fridgeID/sensorID/EAN0
+ProductsControlWebService è il publisher
+
+2. MyGreenFridge/userID/fridgeID/sensorID/EAN1
+ConsumptionControlWebService è il publisher
+
+3. MyGreenFridge/userID/fridgeID/sensorID/Tcontrol
+TemperatureControlWebService è il publisher
+
+4. MyGreenFridge/userID/fridgeID/sensorID/Hcontrol
+HumidityControlWebService è il publisher
 
 
