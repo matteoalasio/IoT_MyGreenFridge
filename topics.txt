@@ -13,5 +13,25 @@ MyGreenFridge/userID/fridgeID/sensorID/EAN1
 MyGreenFridge/userID/fridgeID/sensorID/Tcontrol
 MyGreenFridge/userID/fridgeID/sensorID/Hcontrol
 
+---AGGIORNAMENTO---
+
+Consideriamo che ogni utente può avere solo un frigo,
+E ogni frigo può avere solo 4 sensori (temperatura, umidità, camera0, camera1).
+Quindi i topics diventano:
+
+(Topics per i quali le control strategies sono subscriber:)
+
+MyGreenFridge/userID/temperature
+MyGreenFridge/userID/humidity
+MyGreenFridge/userID/camera0
+MyGreenFridge/userID/camera1
+
+(Topics per i quali le control strategies sono publisher:)
+
+MyGreenFridge/userID/EAN0
+MyGreenFridge/userID/EAN1
+MyGreenFridge/userID/Tcontrol
+MyGreenFridge/userID/Hcontrol
+
 
 
