@@ -7,7 +7,7 @@ from TemperatureControl import *
 import threading
 
 #- MQTT_subscriber:		- /MyGreenFridge/ + user_ID + /temperature
-#- MQTT_publisher:		- /GreenFridge/ + user_ID + /Temp_control 
+#- MQTT_publisher:		- /GreenFridge/ + user_ID + /Tcontrol 
 					#pubblica 0 in caso di valore della temperatura nella norma
 					#pubblica error in caso di valore della temperatura o troppo alto o troppo basso
 
@@ -34,9 +34,10 @@ class Temp_MQTT():
 	#Receive the message from the topic 
 	def myOnMessage(self, paho_mqtt, userdata, msg):
 		# A new message is received
-		#message = json.loads(msg.payload.decode('string-escape').strip('"'))
-		temperature_read = msg.payload.decode("utf-8")
-		#temperature_read = ((message["e"])[0])["v"] #restituisce il valore --> JSON?
+		message = json.loads(msg.payload.decode("utf-8"))
+	
+		#temperature_read = msg.payload.decode("utf-8")
+		temperature_read = int(((message["e"])[0])["v"]) #restituisce il valore --> JSON?
 
 		#Control the temperature
 		control_status = self.control.temp_check(temperature_read)
@@ -51,7 +52,7 @@ class Temp_MQTT():
 			print ("Temperature is ok")
 			pub_mess = json.dumps({"v":0})
 			self.myPublish('/MyGreenFridge/' + self.user_ID + '/Tcontrol', pub_mess)
-				
+					
 
 	def start(self, topic):
 
@@ -90,15 +91,17 @@ class TemperatureThread(threading.Thread):
                 
                 topic = "MyGreenFridge/"+str(self.user_ID)+"/temperature"
                 MQTT_temperature.mySubscribe(topic)
+                #with open('prova.txt', 'r') as myfile:
+                #	data = myfile.read()
+	
+                #MQTT_temperature.myPublish(topic, data)
 
-                #MQTT_temperature.myPublish(topic, "0")
                 temperature_curr = self.control.get_temperature()
 
                 if (temperature_curr != self.control.get_init_temperature()):
 
                		url = self.catalog_url + "add_sensor?Fridge_ID=" + self.fridge_ID
 
-                
 
                 	print ("Current Temperature :", temperature_curr)
                 	sensor_to_add = {"sensor_ID": self.sensor_ID, "Value": temperature_curr}
@@ -107,6 +110,7 @@ class TemperatureThread(threading.Thread):
                 	try:
                 		r = requests.post(url, data = json.dumps(sensor_to_add))
                 		r.raise_for_status()
+
                		except requests.HTTPError as err:
                 		print ("Error in posting, aborting")
                 		return

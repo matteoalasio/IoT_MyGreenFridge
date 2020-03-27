@@ -33,10 +33,11 @@ class Hum_MQTT():
 
 	#Receive the message from the topic 
 	def myOnMessage(self, paho_mqtt, userdata, msg):
-		# A new message is received
-		#message = json.loads(msg.payload.decode('string-escape').strip('"'))
-		humidity_read = msg.payload.decode("utf-8")
-		#temperature_read = ((message["e"])[0])["v"] #restituisce il valore --> JSON?
+		## A new message is received
+		message = json.loads(msg.payload.decode("utf-8"))
+	
+		#humidity_read = msg.payload.decode("utf-8")
+		humidity_read = int(((message["e"])[0])["v"])
 
 		#Control the humidity
 		control_status = self.control.hum_check(humidity_read)
@@ -91,7 +92,8 @@ class HumidityThread(threading.Thread):
                 topic = "MyGreenFridge/"+str(self.user_ID)+"/humidity"
                 MQTT_humidity.mySubscribe(topic)
 
-                #MQTT_humidity.myPublish(topic, "13")
+                
+                #MQTT_humidity.myPublish("MyGreenFridge/"+str(self.user_ID)+"/temperature", data)
                 humidity_curr = self.control.get_humidity()
 
                 if (humidity_curr != self.control.get_init_humidity()):
@@ -105,11 +107,12 @@ class HumidityThread(threading.Thread):
                 	try:
                 		r = requests.post(url, data = json.dumps(sensor_to_add))
                 		r.raise_for_status()
+                		print ("New value for humidity sensor added")
                		except requests.HTTPError as err:
                 		print ("Error in posting, aborting")
                 		return
 
-                time.sleep(15)
+                time.sleep(10)
 
 
 if __name__ == '__main__':														
