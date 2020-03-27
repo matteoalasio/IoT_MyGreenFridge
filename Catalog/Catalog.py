@@ -229,13 +229,21 @@ class Catalog(object):
 
 		for fridge in dict['fridges']:
 			if fridge['ID'] == fridge_ID:
-				fridge['sensors'] = added_sensor
-			
+				flag = 0
+				for sensor in fridge['sensors']:
+					#If the sensor already exist, update the sensor
+					if sensor['sensor_ID'] == str(added_sensor['sensor_ID']):
+						sensor['Value']=added_sensor['Value']
+						flag = 1
+				#If the sensor doesn't exist, add it to the fridge
+				if (flag == 0):
+					fridge['sensors'].append({'sensor_ID':str(added_sensor['sensor_ID']), 'Value':added_sensor['Value']})
+
 				file = open(self.filename, 'w')
 				file.write(json.dumps(dict))
 				file.close()
 
-				return "Sensors have been added"
+				return "Sensor has been added"
 
 		return "Fridge not found!"
 
