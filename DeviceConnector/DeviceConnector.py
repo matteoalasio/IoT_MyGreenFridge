@@ -4,6 +4,7 @@ import select
 import v4l2capture
 from PIL import Image
 import pybase64
+import socket
 
 class DeviceConnector(object):
     
@@ -105,7 +106,7 @@ class DeviceConnector(object):
     		v = "Reading error"
 
     	C0senml = {"bn": bn, "e": [{ "n": n, "u": u,"t": t, "v": v}]}
-    	print ("Image from Camera0 is: " + str(v))
+    	print ("Image captured from Camera0")
     	
     	return C0senml
         
@@ -148,13 +149,19 @@ class DeviceConnector(object):
     		v = "Reading error"
 
     	C1senml = {"bn": bn, "e": [{ "n": n, "u": u,"t": t, "v": v}]}
-    	print ("Image from Camera1 is: " + str(v))
+    	print ("Image captured from Camera1")
     	
     	return C1senml
     
     
 if __name__ == '__main__':
-	dev = DeviceConnector("192.168.1.128")
+    
+        # get IP address of the RPI
+        s = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0] # "192.168.1.128"
+        
+	dev = DeviceConnector(ip)
 	dev.get_temperature()
 	dev.get_humidity()
 	dev.get_camera0()
