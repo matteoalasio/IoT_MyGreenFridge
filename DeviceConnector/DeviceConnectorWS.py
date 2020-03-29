@@ -114,26 +114,25 @@ class DeviceConnectorMQTT:
 
 
 	def myOnConnect (self, paho_mqtt, userdata, flags, rc):
-		print ("Connected to %s with result code: %d" % (self.broker, rc))
+		print ("Connected to broker: " + str(self.broker) + ", with result code: " + str(rc))
 
 	def myOnMessageReceived (self, paho_mqtt , userdata, msg):
 		# A new message is received
 		#self.notifier.notify (msg.topic, msg.payload)
-		print("Message is:")
-		print(msg.payload)
-		print("Topic is:")
-		print(msg.topic)
+		print("Message received: " + str(msg.payload))
+		print("On topic: ", str(msg.topic))
 
 
 	def myPublish (self, topic, msg):
 		# if needed, you can do some computation or error-check before publishing
-		print ("publishing '%s' with topic '%s'" % (msg, topic))
+		print ("Publishing message: " + str(msg))
+		print("with topic: " + str(topic))
 		# publish a message with a certain topic
 		self._paho_mqtt.publish(topic, msg, 2)
 
 	def mySubscribe (self, topic):
 		# if needed, you can do some computation or error-check before subscribing
-		print ("subscribing to %s" % (topic))
+		print ("Subscribing to topic: " +str(topic))
 		# subscribe for a topic
 		self._paho_mqtt.subscribe(topic, 2)
 
@@ -179,6 +178,32 @@ class HumidityThread(threading.Thread):
                 topic = "MyGreenFridge/"+str(userID)+"/humidity"
                 deviceConnectorMQTT.myPublish(topic, msg)
                 time.sleep(15)
+                
+class Camera0Thread(threading.Thread):
+        
+        def __init__(self, deviceConnector, deviceConnectorMQTT, userID):
+            threading.Thread.__init__(self)
+        
+        def run(self):
+            while True:
+                C0senml = deviceConnector.get_camera0()
+                msg = json.dumps(C0senml)
+                topic = "MyGreenFridge/"+str(userID)+"/camera0"
+                deviceConnectorMQTT.myPublish(topic, msg)
+                time.sleep(15)
+                
+class Camera1Thread(threading.Thread):
+        
+        def __init__(self, deviceConnector, deviceConnectorMQTT, userID):
+            threading.Thread.__init__(self)
+        
+        def run(self):
+            while True:
+                C1senml = deviceConnector.get_camera1()
+                msg = json.dumps(C1senml)
+                topic = "MyGreenFridge/"+str(userID)+"/camera1"
+                deviceConnectorMQTT.myPublish(topic, msg)
+                time.sleep(15)
 
 
 if __name__ == '__main__':
@@ -203,6 +228,17 @@ if __name__ == '__main__':
     broker = ip
     port = 1883
     
+    # read configuration file
+    with open("configDeviceConnector.txt", "r") as configFile:
+        configJson = configFile.read()
+        configDict = json.loads(configJson)
+        configFile.close()
+        
+    userID = configDict["userID"]
+    catalogIP = configDict["catalogIP"]
+    
+    print("Catalog IP is: " + catalogIP)
+    
     
     # instantiate a DeviceConnector object
     deviceConnector = DeviceConnector(ip)
@@ -212,9 +248,13 @@ if __name__ == '__main__':
     
     tempThread = TemperatureThread(deviceConnector, deviceConnectorMQTT, userID)
     humThread = HumidityThread(deviceConnector, deviceConnectorMQTT, userID)
+    cam0Thread = Camera0Thread(deviceConnector, deviceConnectorMQTT, userID)
+    cam1Thread = Camera1Thread(deviceConnector, deviceConnectorMQTT, userID)
     
     tempThread.start()
     humThread.start()
+    cam0Thread.start()
+    # cam1Thread.start()
     
     # deploy the DeviceConnectorREST class and start the web server
     cherrypy.tree.mount(DeviceConnectorREST(deviceConnector), '/', conf)
