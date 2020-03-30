@@ -1,1 +1,1 @@
-{"catalogIP":"localhost", "userID": "1234"}
+{"catalogIP":"localhost", "catalogPort": "8080", "userID": "1234", "fridgeID": "5678"}
