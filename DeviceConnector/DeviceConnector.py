@@ -9,10 +9,11 @@ import socket
 class DeviceConnector(object):
     
     # constructor
-    def __init__(self, ip):
+    def __init__(self, ip, userID, fridgeID):
 
-        # IP
+        # IP and port
         self.ip = ip
+        self.port = "8080"
         
         # DHT22 sensor for temperature and humidity
         self.pin_dht = 17
@@ -24,6 +25,10 @@ class DeviceConnector(object):
         
         # camera1 path (usb camera)
         self.camera1 = "/dev/video1"
+        
+        # save userID and fridgeID
+        self.userID = userID
+        self.fridgeID = fridgeID
 
 
     def get_temperature(self):
