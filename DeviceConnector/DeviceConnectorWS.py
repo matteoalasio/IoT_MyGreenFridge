@@ -4,6 +4,7 @@ import json
 import socket
 import paho.mqtt.client as PahoMQTT       
 import threading
+import requests
 
 class DeviceConnectorREST(object):
     
@@ -155,55 +156,82 @@ class DeviceConnectorMQTT:
 		
 class TemperatureThread(threading.Thread):
         
-        def __init__(self, deviceConnector, deviceConnectorMQTT, userID):
+        def __init__(self, deviceConnector, deviceConnectorMQTT):
             threading.Thread.__init__(self)
         
         def run(self):
             while True:
                 Tsenml = deviceConnector.get_temperature()
                 msg = json.dumps(Tsenml)
-                topic = "MyGreenFridge/"+str(userID)+"/temperature"
+                topic = "MyGreenFridge/"+str(deviceConnector.userID)+"/"+str(deviceConnector.fridgeID)+"/temperature"
                 deviceConnectorMQTT.myPublish(topic, msg)
                 time.sleep(15)
 
 class HumidityThread(threading.Thread):
         
-        def __init__(self, deviceConnector, deviceConnectorMQTT, userID):
+        def __init__(self, deviceConnector, deviceConnectorMQTT):
             threading.Thread.__init__(self)
         
         def run(self):
             while True:
                 Hsenml = deviceConnector.get_humidity()
                 msg = json.dumps(Hsenml)
-                topic = "MyGreenFridge/"+str(userID)+"/humidity"
+                topic = "MyGreenFridge/"+str(deviceConnector.userID)+"/"+str(deviceConnector.fridgeID)+"/humidity"
                 deviceConnectorMQTT.myPublish(topic, msg)
                 time.sleep(15)
                 
 class Camera0Thread(threading.Thread):
         
-        def __init__(self, deviceConnector, deviceConnectorMQTT, userID):
+        def __init__(self, deviceConnector, deviceConnectorMQTT):
             threading.Thread.__init__(self)
         
         def run(self):
             while True:
                 C0senml = deviceConnector.get_camera0()
                 msg = json.dumps(C0senml)
-                topic = "MyGreenFridge/"+str(userID)+"/camera0"
+                topic = "MyGreenFridge/"+str(deviceConnector.userID)+"/"+str(deviceConnector.fridgeID)+"/camera0"
                 deviceConnectorMQTT.myPublish(topic, msg)
                 time.sleep(15)
                 
 class Camera1Thread(threading.Thread):
         
-        def __init__(self, deviceConnector, deviceConnectorMQTT, userID):
+        def __init__(self, deviceConnector, deviceConnectorMQTT):
             threading.Thread.__init__(self)
         
         def run(self):
             while True:
                 C1senml = deviceConnector.get_camera1()
                 msg = json.dumps(C1senml)
-                topic = "MyGreenFridge/"+str(userID)+"/camera1"
+                topic = "MyGreenFridge/"+str(deviceConnector.userID)+"/"+str(deviceConnector.fridgeID)+"/camera1"
                 deviceConnectorMQTT.myPublish(topic, msg)
                 time.sleep(15)
+                
+class RegistrationThread(threading.Thread):
+        
+        def __init__(self, deviceConnector, catalogIP, catalogPort):
+            threading.Thread.__init__(self)
+        
+        def run(self):
+            url = "http://"+ catalogIP + ":"+ catalogPort + "/"
+            while True:
+                # register user
+                dictUser = {"ID": deviceConnector.userID,
+                            "nickname": None}
+                jsonUser = json.dumps(dictUser)
+                #r1 = requests.post(url+"add_user", data=jsonUser)
+                dictFridge = {"ID": deviceConnector.fridgeID,
+                              "user": None,
+                              "sensors":[],
+                              "products": [],
+                              "IP": deviceConnector.ip,
+                              "port": deviceConnector.port}
+                jsonFridge = json.dumps(dictFridge)
+                #r2 = requests.post(url+"add_fridge", data=jsonFridge)
+                print(url)
+                print(dictUser)
+                print(dictFridge)
+                time.sleep(5)
+
 
 
 if __name__ == '__main__':
@@ -236,25 +264,30 @@ if __name__ == '__main__':
         
     userID = configDict["userID"]
     catalogIP = configDict["catalogIP"]
+    catalogPort = configDict["catalogPort"]
+    fridgeID = configDict["fridgeID"]
     
     print("Catalog IP is: " + catalogIP)
+    print("Catalog port is " + catalogPort)
     
     
     # instantiate a DeviceConnector object
-    deviceConnector = DeviceConnector(ip)
+    deviceConnector = DeviceConnector(ip, userID, fridgeID)
     
     deviceConnectorMQTT = DeviceConnectorMQTT(clientID, broker, port, deviceConnector)
     deviceConnectorMQTT.start()
     
-    tempThread = TemperatureThread(deviceConnector, deviceConnectorMQTT, userID)
-    humThread = HumidityThread(deviceConnector, deviceConnectorMQTT, userID)
-    cam0Thread = Camera0Thread(deviceConnector, deviceConnectorMQTT, userID)
-    cam1Thread = Camera1Thread(deviceConnector, deviceConnectorMQTT, userID)
+    tempThread = TemperatureThread(deviceConnector, deviceConnectorMQTT)
+    humThread = HumidityThread(deviceConnector, deviceConnectorMQTT)
+    cam0Thread = Camera0Thread(deviceConnector, deviceConnectorMQTT)
+    cam1Thread = Camera1Thread(deviceConnector, deviceConnectorMQTT)
+    regThread = RegistrationThread(deviceConnector, catalogIP, catalogPort)
     
     tempThread.start()
     humThread.start()
-    cam0Thread.start()
-    # cam1Thread.start()
+    #cam0Thread.start()
+    #cam1Thread.start()
+    regThread.start()
     
     # deploy the DeviceConnectorREST class and start the web server
     cherrypy.tree.mount(DeviceConnectorREST(deviceConnector), '/', conf)
