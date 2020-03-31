@@ -1,4 +1,5 @@
-from DeviceConnector import *
+#from DeviceConnector import *
+from SimulatedDeviceConnector import *
 import cherrypy
 import json
 import socket
@@ -253,7 +254,7 @@ if __name__ == '__main__':
     # PROVA --> poi sistemiamo da dove vengono questi parametri
     userID = "pippo"
     clientID = "ciccio"
-    broker = ip
+    broker = "http://192.168.1.136"
     port = 1883
     
     # read configuration file

@@ -165,8 +165,10 @@ if __name__ == '__main__':
         s = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
         s.connect(("8.8.8.8", 80))
         ip = s.getsockname()[0] # "192.168.1.128"
-        
-	dev = DeviceConnector(ip)
+
+    userID = "1234"
+    fridgeID = "5678"    
+	dev = DeviceConnector(ip, userID, fridgeID)
 	dev.get_temperature()
 	dev.get_humidity()
 	dev.get_camera0()
