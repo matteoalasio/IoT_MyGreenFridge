@@ -28,7 +28,7 @@ class DeviceConnectorREST(object):
             
             # check if temperature is a string
             # since in that case there must have been a reading error
-            if isinstance(temperature, basestring):
+            if isinstance(temperature, str):
                 raise cherrypy.HTTPError(500, "Error in reading data from temperature sensor")
             else:
                 # if the temperature has been read correctly, convert senml into json
@@ -44,7 +44,7 @@ class DeviceConnectorREST(object):
             # since in that case there must have been a reading error
             humidity = ((senml['e'])[0])['v']
 
-            if isinstance(humidity, basestring):
+            if isinstance(humidity, str):
                 raise cherrypy.HTTPError(500, "Error in reading data from humidity sensor")
             else:
                 # if the humidity has been read correctly, convert senml into json
@@ -254,7 +254,7 @@ if __name__ == '__main__':
     # PROVA --> poi sistemiamo da dove vengono questi parametri
     userID = "pippo"
     clientID = "ciccio"
-    broker = "http://192.168.1.136"
+    broker = "localhost"
     port = 1883
     
     # read configuration file
@@ -286,8 +286,8 @@ if __name__ == '__main__':
     
     tempThread.start()
     humThread.start()
-    #cam0Thread.start()
-    #cam1Thread.start()
+    cam0Thread.start()
+    cam1Thread.start()
     regThread.start()
     
     # deploy the DeviceConnectorREST class and start the web server

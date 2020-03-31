@@ -99,6 +99,7 @@ class DeviceConnector(object):
         with open("camera0image.jpg", "rb") as image_file:
             # base64 encoding
             image_base64 = pybase64.b64encode(image_file.read())
+            image_base64 = image_base64.decode() # convert bytes into string
             
         bn = "http://" + self.ip + "/Camera0/" # base name
         n = "camera0" # resource name
@@ -142,6 +143,7 @@ class DeviceConnector(object):
         with open("camera1image.jpg", "rb") as image_file:
             # base64 encoding
             image_base64 = pybase64.b64encode(image_file.read())
+            image_base64 = image_base64.decode() # convert bytes into string
             
         bn = "http://" + self.ip + "/Camera1/" # base name
         n = "camera1" # resource name
