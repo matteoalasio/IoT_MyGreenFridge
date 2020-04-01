@@ -1,5 +1,9 @@
 import time
 import json
+"""
+
+"""
+
 
 
 class Catalog(object):
@@ -170,6 +174,7 @@ class Catalog(object):
 		dict['fridges'].append({'ID': added_fridge['ID'],'user': None,
                                 'sensors': added_fridge['sensors'],
                                 'products': added_fridge['products'],
+                                'wasted': [],
                                 'insert-timestamp': time.time(),
                                 'IP': added_fridge['IP'],
                                 'port': added_fridge['port']})
@@ -191,6 +196,7 @@ class Catalog(object):
 			if fridge['ID'] == str(updated_fridge['ID']):
 				fridge['sensors'] = updated_fridge['sensors']
 				fridge['products'] = updated_fridge['products']
+				fridge['wasted'] = updated_fridge['wasted']
 				fridge['insert-timestamp'] = time.time()
 				fridge['IP'] = updated_fridge['IP']
 				fridge['port'] = updated_fridge['port']
@@ -432,8 +438,7 @@ class Catalog(object):
 								file = open(self.filename, 'w')
 								file.write(json.dumps(dict))
 								file.close()
-
-							return "Wasted product has been added"
+								return "Wasted product has been added"
 						return "Product was not present in the fridge!"
 				return "Fridge not found!"
 

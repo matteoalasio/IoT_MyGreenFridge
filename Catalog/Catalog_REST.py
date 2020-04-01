@@ -4,6 +4,54 @@ import time
 import requests
 from Catalog import *
 
+"""
+GET:
+- /broker/ : Provide information about the broker IP address and port
+- /users/ : Provide information about the available users
+- /user?ID=<id> : Provide information about a user with a specific ID
+- /fridges/ : Provide information about all the available fridges
+- /fridge?ID=<id> : Provide information about a fridge with a specific fridge_ID
+- /products?Fridge_ID=<IDFridge> : Provide information about the available products in a fridge
+- /wasted?Fridge_ID=<IDFridge> : Provide information about the wasted products of a fridge
+- /expiration_date?Fridge_ID=<IDFridge>&Product_ID=<IDProduct> : Provide information about the expiration date 
+                                                                of a specified product
+- /association?Fridge_ID=<IDFridge>&User_ID=<IDUser> : Association between a user and a fridge
+"""
+
+"""
+POST:
+- /add_fridge/ : Registration of a new fridge
+    The body required is : {"ID":"", "sensors":[], "products":[], "wasted": [], "insert-timestamp": "", "IP": "", "port": ""}
+- /update_fridge/ : Update a specified fridge
+- /add_user/ : Registration of a new user
+    The body required is {"ID":""}
+- /update_user/ : Update a specified user adding the nickname
+    The body required is {"ID":"", "nickname":""}
+- /add_sensor?Fridge_ID=<IDFridge> : Add a sensor to the correspondant Fridge
+    The body required is {"sensor_ID":"", "Value":""}
+- /update_sensor?Fridge_ID=<IDFridge> : Update a sensor given the correspondant fridge
+    The body required is {"sensor_ID":"", "Value":""}
+- /add_product?Fridge_ID=<IDFridge> : Add a product to the correspondant Fridge
+    The body required is {"product_ID":""}
+- /add_expiration?Fridge_ID=<IDFridge>&Product_ID=<IDProduct> : Add the expiration date of a specified product
+    The body required is {"day":"", "month":"", "year":""}
+- /add_wasted?Fridge_ID=<IDFridge> : Add a wasted product to a specified fridge
+    The body required is {"product_ID":""}        
+"""
+
+"""
+DELETE:
+- /fridge?ID=<id> : Delete a specified fridge
+- /user?ID=<id> : Delete a specified user
+- /sensor/fridge_ID?Sensor_ID=<IDSensor> : Delete a specified sensor. 
+                                        Replace "fridge_ID" in the uri with the ID of the fridge where the sensor is present
+
+- /product/Fridge_ID?Prod_ID=<IDProd> : Delete a product for a specified fridge.
+                                        Replace "fridge_ID" in the uri with the ID of the fridge where the product is present
+"""
+
+
+
 class Catalog_REST:
     exposed = True
 
@@ -12,6 +60,7 @@ class Catalog_REST:
 
 
 ########################################## GET FUNCTION ############################################
+  
     def GET(self, *uri, **params):
         if len(uri) == 0:
             raise cherrypy.HTTPError(400)
@@ -61,14 +110,16 @@ class Catalog_REST:
         # Information about the available products in a fridge
         elif uri[0] == 'products':
             fridge_ID = params['Fridge_ID']
-            info = json.dumps({'Products': self.catalog.get_products(fridge_ID)})
+            info = json.dumps(
+                {'Products': self.catalog.get_products(fridge_ID)})
             return info
 
         #/wasted?Fridge_ID=<IDFridge>
         # Information about the wasted products of a fridge
         elif uri[0] == 'wasted':
             fridge_ID = params['Fridge_ID']
-            info = json.dumps({'Wasted_products': self.catalog.get_wasted(fridge_ID)})
+            info = json.dumps(
+                {'Wasted_products': self.catalog.get_wasted(fridge_ID)})
             return info
 
         #/expiration_date?Fridge_ID=<IDFridge>&Product_ID=<IDProduct>
@@ -77,7 +128,8 @@ class Catalog_REST:
             product_ID = params['Product_ID']
             fridge_ID = params['Fridge_ID']
             info = self.catalog.get_expiration(fridge_ID, product_ID)
-            info_2 = json.dumps({'expiration_date': self.catalog.get_expiration(fridge_ID, product_ID)})
+            info_2 = json.dumps(
+                {'expiration_date': self.catalog.get_expiration(fridge_ID, product_ID)})
             if info == "Product not found!":
                 raise cherrypy.HTTPError(404, info)
             if info == "Fridge not found!":
@@ -90,15 +142,19 @@ class Catalog_REST:
             user_ID = params['User_ID']
             fridge_ID = params['Fridge_ID']
 
-            info_association = self.catalog.associate_user_fridge(user_ID, fridge_ID)
+            info_association = self.catalog.associate_user_fridge(
+                user_ID, fridge_ID)
 
             if info_association == "User not found!":
                 raise cherrypy.HTTPError(404, info_association)
             if info_association == "Fridge not found!":
                 raise cherrypy.HTTPError(404, info_association)
 
+            return info_association
+
         else:
-            raise cherrypy.HTTPError(400, "Your GET request has URI not correct")
+            raise cherrypy.HTTPError(
+                400, "Your GET request has URI not correct")
 
 
 ########################################## POST FUNCTION ############################################
@@ -113,11 +169,10 @@ class Catalog_REST:
 
         #/add_fridge/
         # Registration of a new fridge
-        #The body required is : {"ID":"", "sensors":[], "products":[], "wasted": [], "insert-timestamp": "", "IP": "", "port": ""}
+        # The body required is : {"ID":"", "sensors":[], "products":[], "wasted": [], "insert-timestamp": "", "IP": "", "port": ""}
         if uri[0] == 'add_fridge':
             info_added = self.catalog.add_fridge(body)
             return info_added
-
 
         #/update_fridge/
         # Update a specified fridge
@@ -129,7 +184,7 @@ class Catalog_REST:
 
         #/add_user/
         # Registration of a new user
-        #The body required is {"user_ID":""}
+        # The body required is {"user_ID":""}
         elif uri[0] == 'add_user':
             info_added = self.catalog.add_user(body)
             if info_added == "User already present":
@@ -138,7 +193,7 @@ class Catalog_REST:
 
         #/update_user/
         # Update a specified user adding the nickname
-        #The body required is {"user_ID":"", "nickname":""}
+        # The body required is {"user_ID":"", "nickname":""}
         elif uri[0] == 'update_user':
             info_updated = self.catalog.update_user(body)
             if info_updated == "User not found!":
@@ -147,7 +202,7 @@ class Catalog_REST:
 
         #/add_sensor?Fridge_ID=<IDFridge>
         # Add a sensor to the correspondant Fridge
-        #The body required is {"sensor_ID":"", "Value":""}
+        # The body required is {"sensor_ID":"", "Value":""}
         elif uri[0] == 'add_sensor':
             fridge_ID = params['Fridge_ID']
             info_added = self.catalog.add_sensor(fridge_ID, body)
@@ -157,7 +212,7 @@ class Catalog_REST:
 
         #/update_sensor?Fridge_ID=<IDFridge>
         # Update a sensor given the correspondant fridge
-        #The body required is {"sensor_ID":"", "Value":""}
+        # The body required is {"sensor_ID":"", "Value":""}
         elif uri[0] == 'update_sensor':
             fridge_ID = params['Fridge_ID']
             info_updated = self.catalog.update_sensor(fridge_ID, body)
@@ -165,10 +220,9 @@ class Catalog_REST:
                 raise cherrypy.HTTPError(404, info_updated)
             return info_updated
 
-
         #/add_product?Fridge_ID=<IDFridge>
         # Add a product to the correspondant Fridge
-        #The body required is {"product_ID":""}
+        # The body required is {"product_ID":""}
         elif uri[0] == 'add_product':
             fridge_ID = params['Fridge_ID']
             info_added = self.catalog.add_product(fridge_ID, body)
@@ -176,14 +230,14 @@ class Catalog_REST:
                 raise cherrypy.HTTPError(404, info_added)
             return info_added
 
-
         #/add_expiration?Fridge_ID=<IDFridge>&Product_ID=<IDProduct>
         # Add the expiration date of a specified product
         # The body of the request has to be {"day":"", "month":"", "year":""}
         if uri[0] == 'add_expiration':
             product_ID = params['Product_ID']
             fridge_ID = params['Fridge_ID']
-            info_added = self.catalog.add_expiration(fridge_ID, product_ID, body)
+            info_added = self.catalog.add_expiration(
+                fridge_ID, product_ID, body)
             if info_added == "Fridge not found!":
                 raise cherrypy.HTTPError(404, info_added)
             if info_added == "Product not found!":
@@ -202,15 +256,15 @@ class Catalog_REST:
                 raise cherrypy.HTTPError(404, info_added)
             return info_added
 
-
         else:
-            raise cherrypy.HTTPError(400, "Your POST request has URI not correct")
+            raise cherrypy.HTTPError(
+                400, "Your POST request has URI not correct")
 
 
 ########################################## DELETE FUNCTION ############################################
 
     def DELETE(self, *uri, **params):
-        
+
         #/fridge?ID=<id>
         # Delete a specified fridge
         if uri[0] == 'fridge':
@@ -230,7 +284,7 @@ class Catalog_REST:
             return info_updated
 
         #/sensor/fridge_ID?Sensor_ID=<IDSensor>
-        # Delete a specified user
+        # Delete a specified sensor
         elif uri[0] == 'sensor':
             fridge_ID = (uri[1])
             sensor_ID = params['Sensor_ID']
