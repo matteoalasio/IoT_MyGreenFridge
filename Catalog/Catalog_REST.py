@@ -4,12 +4,11 @@ import time
 import requests
 from Catalog import *
 
-
 class Catalog_REST:
     exposed = True
 
     def __init__(self):
-        self.catalog = Catalog("Catalog_test.txt")
+        self.catalog = Catalog("test_file.txt")
 
 
 ########################################## GET FUNCTION ############################################
@@ -58,6 +57,33 @@ class Catalog_REST:
                 info = json.dumps({'fridge': info_fridge})
                 return info
 
+        #/products?Fridge_ID=<IDFridge>
+        # Information about the available products in a fridge
+        elif uri[0] == 'products':
+            fridge_ID = params['Fridge_ID']
+            info = json.dumps({'Products': self.catalog.get_products(fridge_ID)})
+            return info
+
+        #/wasted?Fridge_ID=<IDFridge>
+        # Information about the wasted products of a fridge
+        elif uri[0] == 'wasted':
+            fridge_ID = params['Fridge_ID']
+            info = json.dumps({'Wasted_products': self.catalog.get_wasted(fridge_ID)})
+            return info
+
+        #/expiration_date?Fridge_ID=<IDFridge>&Product_ID=<IDProduct>
+        # Information about the expiration date of a specified product
+        elif uri[0] == 'expiration_date':
+            product_ID = params['Product_ID']
+            fridge_ID = params['Fridge_ID']
+            info = self.catalog.get_expiration(fridge_ID, product_ID)
+            info_2 = json.dumps({'expiration_date': self.catalog.get_expiration(fridge_ID, product_ID)})
+            if info == "Product not found!":
+                raise cherrypy.HTTPError(404, info)
+            if info == "Fridge not found!":
+                raise cherrypy.HTTPError(404, info)
+            return info_2
+
         # /association?Fridge_ID=<IDFridge>&User_ID=<IDUser>
         # Association between a user and a fridge
         elif uri[0] == 'association':
@@ -70,6 +96,9 @@ class Catalog_REST:
                 raise cherrypy.HTTPError(404, info_association)
             if info_association == "Fridge not found!":
                 raise cherrypy.HTTPError(404, info_association)
+
+        else:
+            raise cherrypy.HTTPError(400, "Your GET request has URI not correct")
 
 
 ########################################## POST FUNCTION ############################################
@@ -84,55 +113,145 @@ class Catalog_REST:
 
         #/add_fridge/
         # Registration of a new fridge
+        #The body required is : {"ID":"", "sensors":[], "products":[], "wasted": [], "insert-timestamp": "", "IP": "", "port": ""}
         if uri[0] == 'add_fridge':
             info_added = self.catalog.add_fridge(body)
+            return info_added
 
 
         #/update_fridge/
         # Update a specified fridge
         elif uri[0] == 'update_fridge':
             info_updated = self.catalog.update_fridge(body)
+            if info_updated == "Fridge not found!":
+                raise cherrypy.HTTPError(404, info_updated)
+            return info_updated
 
         #/add_user/
         # Registration of a new user
+        #The body required is {"user_ID":""}
         elif uri[0] == 'add_user':
             info_added = self.catalog.add_user(body)
-            print info_added
+            if info_added == "User already present":
+                raise cherrypy.HTTPError(404, info_added)
+            return info_added
 
         #/update_user/
-        # Update a specified user
+        # Update a specified user adding the nickname
+        #The body required is {"user_ID":"", "nickname":""}
         elif uri[0] == 'update_user':
             info_updated = self.catalog.update_user(body)
+            if info_updated == "User not found!":
+                raise cherrypy.HTTPError(404, info_updated)
+            return info_updated
 
         #/add_sensor?Fridge_ID=<IDFridge>
         # Add a sensor to the correspondant Fridge
+        #The body required is {"sensor_ID":"", "Value":""}
         elif uri[0] == 'add_sensor':
             fridge_ID = params['Fridge_ID']
-            info_updated = self.catalog.add_sensor(fridge_ID, body)
+            info_added = self.catalog.add_sensor(fridge_ID, body)
+            if info_added == "Fridge not found!":
+                raise cherrypy.HTTPError(404, info_added)
+            return info_added
+
+        #/update_sensor?Fridge_ID=<IDFridge>
+        # Update a sensor given the correspondant fridge
+        #The body required is {"sensor_ID":"", "Value":""}
+        elif uri[0] == 'update_sensor':
+            fridge_ID = params['Fridge_ID']
+            info_updated = self.catalog.update_sensor(fridge_ID, body)
+            if info_updated == "Fridge not found!":
+                raise cherrypy.HTTPError(404, info_updated)
+            return info_updated
+
+
+        #/add_product?Fridge_ID=<IDFridge>
+        # Add a product to the correspondant Fridge
+        #The body required is {"product_ID":""}
+        elif uri[0] == 'add_product':
+            fridge_ID = params['Fridge_ID']
+            info_added = self.catalog.add_product(fridge_ID, body)
+            if info_added == "Fridge not found!":
+                raise cherrypy.HTTPError(404, info_added)
+            return info_added
+
+
+        #/add_expiration?Fridge_ID=<IDFridge>&Product_ID=<IDProduct>
+        # Add the expiration date of a specified product
+        # The body of the request has to be {"day":"", "month":"", "year":""}
+        if uri[0] == 'add_expiration':
+            product_ID = params['Product_ID']
+            fridge_ID = params['Fridge_ID']
+            info_added = self.catalog.add_expiration(fridge_ID, product_ID, body)
+            if info_added == "Fridge not found!":
+                raise cherrypy.HTTPError(404, info_added)
+            if info_added == "Product not found!":
+                raise cherrypy.HTTPError(404, info_added)
+            return info_added
+
+        #/add_wasted?Fridge_ID=<IDFridge>
+        # Add a wasted product to a specified fridge
+        # The body of the request has to be {"product_ID":""}
+        if uri[0] == 'add_wasted':
+            fridge_ID = params['Fridge_ID']
+            info_added = self.catalog.add_wasted(fridge_ID, body)
+            if info_added == "Fridge not found!":
+                raise cherrypy.HTTPError(404, info_added)
+            if info_added == "Product was not present in the fridge!":
+                raise cherrypy.HTTPError(404, info_added)
+            return info_added
+
 
         else:
-            raise cherrypy.HTTPError(400)
+            raise cherrypy.HTTPError(400, "Your POST request has URI not correct")
+
 
 ########################################## DELETE FUNCTION ############################################
 
     def DELETE(self, *uri, **params):
-        ID = params['ID']
-
+        
         #/fridge?ID=<id>
         # Delete a specified fridge
         if uri[0] == 'fridge':
-            self.catalog.delete_fridge(ID)
+            ID = params['ID']
+            info_updated = self.catalog.delete_fridge(ID)
+            if info_updated == "Fridge not found!":
+                raise cherrypy.HTTPError(404, info_updated)
+            return info_updated
 
         #/user?ID=<id>
         # Delete a specified user
         elif uri[0] == 'user':
-            self.catalog.delete_user(ID)
+            ID = params['ID']
+            info_updated = self.catalog.delete_user(ID)
+            if info_updated == "User not found!":
+                raise cherrypy.HTTPError(404, info_updated)
+            return info_updated
 
-        #/sensor?Fridge_ID=<IDFridge>
-        # Delete a sensor for a specified fridge
-        if uri[0] == 'sensor':
-            fridge_ID = params['Fridge_ID']
-            self.catalog.delete_sensor(fridge_ID)
+        #/sensor/fridge_ID?Sensor_ID=<IDSensor>
+        # Delete a specified user
+        elif uri[0] == 'sensor':
+            fridge_ID = (uri[1])
+            sensor_ID = params['Sensor_ID']
+            info_updated = self.catalog.delete_sensor(fridge_ID, sensor_ID)
+            if info_updated == "Sensor is not present in the fridge!":
+                raise cherrypy.HTTPError(404, info_updated)
+            if info_updated == "Fridge not found!":
+                raise cherrypy.HTTPError(404, info_updated)
+            return info_updated
+
+        #/product/Fridge_ID?Prod_ID=<IDProd>
+        # Delete a product for a specified fridge
+        if uri[0] == 'product':
+            product_ID = params['Prod_ID']
+            fridge_ID = (uri[1])
+            info_updated = self.catalog.delete_product(fridge_ID, product_ID)
+            if info_updated == "Product not found!":
+                raise cherrypy.HTTPError(404, info_updated)
+            if info_updated == "Fridge not found!":
+                raise cherrypy.HTTPError(404, info_updated)
+            return info_updated
 
         else:
             raise cherrypy.HTTPError(400)

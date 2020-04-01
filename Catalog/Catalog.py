@@ -26,14 +26,14 @@ class Catalog(object):
 		dict = json.loads(json_file)
 		file.close()
 
-		# Search for the user
+
 		user_found = 0
 		for user in dict['users']:
 			if user['ID'] == user_ID:
 				user_found = 1
-				break
-			if user_found == 0:
-				return "User not found!"
+		
+		if user_found == 0:
+			return "User not found!"
 
 		#If the user is found, search for the fridge
 		for fridge in dict['fridges']:
@@ -43,8 +43,6 @@ class Catalog(object):
 				file.write(json.dumps(dict))
 				file.close()
 				return "Search is ended, the association is complete"
-
-		#If the fridge is not found, return an error
 		return "Fridge not found!"
 
 
@@ -70,8 +68,6 @@ class Catalog(object):
 		for user in dict['users']:
 			if user['ID'] == user_ID:
 				return json.dumps(user)
-
-		#If the user is not found, return an error
 		return "User not found!"
 
 
@@ -82,15 +78,21 @@ class Catalog(object):
 		dict = json.loads(json_file)
 		file.close()
 
-		dict['users'].append({'ID': str(added_user['ID']),'nickname': added_user['nickname']})
+	
+		for user in dict['users']:
+			#If the user is already present in the Catalog
+			if (user['ID']==added_user['ID']):
+				return "User already present"
+		
+		#If it is not present, add it		
+		dict['users'].append({'ID': str(added_user['ID']),'nickname': None})
 		file = open(self.filename, 'w')
 		file.write(json.dumps(dict))
 		file.close()
-
 		return "New user has been added"
 
 
-    #Update an user that already exists
+    #Update the nickname of a user that already exists
 	def update_user(self, updated_user):
 		file = open(self.filename, 'r')
 		json_file = file.read()
@@ -104,7 +106,6 @@ class Catalog(object):
 				file.write(json.dumps(dict))
 				file.close()
 				return "User has been updated"
-
 		return "User not found!"
 
 
@@ -115,24 +116,28 @@ class Catalog(object):
 		file.close()
 
 		#Delete a user from the users list
+		flag = 0
 		for user in dict['users']:
 			if user['ID'] == user_ID:
 				dict['users'].remove(user)
+				flag = 1
 				break
 
-		#Delete a user from the dictionary of fridges
+		#Delete the association between user and fridge
 		for fridge in dict['fridges']:
 			if fridge['user'] == user_ID:
-				fridge['user'] = None #Dobbiamo inserire un valore di default?
+				dict['fridges'].remove(fridge)
 
-		#Update the file after all the modification
 		file = open(self.filename, 'w')
 		file.close()
-		print ("User has been deleted")
+		if (flag ==1):
+			return "User has been deleted"
+		else:
+			return "User not found!"
 
 ###################################### FRIDGES MANAGEMENT ########################################
 
-	#Returns the information about all the available fridges
+	#Return the information about all the available fridges
 	def get_fridges(self):
 		file = open(self.filename, 'r')
 		json_file = file.read()
@@ -152,8 +157,6 @@ class Catalog(object):
 		for fridge in dict['fridges']:
 			if fridge['ID'] == fridge_ID:
 				return fridge
-
-		#If the fridge is not found, return an error
 		return "Fridge not found!"
 
 
@@ -197,7 +200,6 @@ class Catalog(object):
 				file.close()
 
 				return "Fridge has been updated"
-
 		return "Fridge not found!"
 
 
@@ -215,8 +217,8 @@ class Catalog(object):
 				file.write(json.dumps(dict))
 				file.close()
 
-				print ("Fridge has been deleted")
-				break
+				return "Fridge has been deleted"
+		return "Fidge not found!"
 
 ###################################### SENSORS MANAGEMENT ########################################
 
@@ -229,23 +231,224 @@ class Catalog(object):
 
 		for fridge in dict['fridges']:
 			if fridge['ID'] == fridge_ID:
-				flag = 0
 				for sensor in fridge['sensors']:
-					#If the sensor already exist, update the sensor
+					#If the sensor already exist, don't add it
 					if sensor['sensor_ID'] == str(added_sensor['sensor_ID']):
-						sensor['Value']=added_sensor['Value']
-						flag = 1
+						return "Sensor already present"
 				#If the sensor doesn't exist, add it to the fridge
-				if (flag == 0):
-					fridge['sensors'].append({'sensor_ID':str(added_sensor['sensor_ID']), 'Value':added_sensor['Value']})
+				fridge['sensors'].append({'sensor_ID':str(added_sensor['sensor_ID']), 'Value':added_sensor['Value']})
 
 				file = open(self.filename, 'w')
 				file.write(json.dumps(dict))
 				file.close()
 
 				return "Sensor has been added"
-
 		return "Fridge not found!"
+
+
+	#Update the value of a sensor, having the fridge_ID
+	def update_sensor(self, fridge_ID, added_sensor):
+		file = open(self.filename, 'r')
+		json_file = file.read()
+		dict = json.loads(json_file)
+		file.close()
+
+		for fridge in dict['fridges']:
+			if fridge['ID'] == fridge_ID:
+				for sensor in fridge['sensors']:
+					if sensor['sensor_ID'] == str(added_sensor['sensor_ID']):
+						sensor['Value']=added_sensor['Value']
+
+				file = open(self.filename, 'w')
+				file.write(json.dumps(dict))
+				file.close()
+
+				return "Sensor has been updated"
+		return "Fridge not found!"
+
+
+	#Delete a specified sensor given its ID and the fridge_ID
+	def delete_sensor(self, fridge_ID, sensor_del):
+		file = open(self.filename, 'r')
+		json_file = file.read()
+		dict = json.loads(json_file)
+		file.close()
+
+		flag = 0
+		for fridge in dict['fridges']:
+			if fridge['ID'] == fridge_ID:
+				for sensor in fridge['sensors']:
+					if sensor['sensor_ID'] == str(sensor_del['sensor_ID']):
+						fridge['sensors'].remove(sensor)
+						flag = 1
+
+				file = open(self.filename, 'w')
+				file.write(json.dumps(dict))
+				file.close()
+				if (flag == 1):
+					return "Sensor has been removed"
+				else:
+					return "Sensor is not present in the fridge!"
+		return "Fridge not found!"
+
+###################################### PRODUCTS MANAGEMENT ########################################
+
+	#Get the list of available products in a fridge
+	def get_products(self, fridge_ID):
+		file = open(self.filename, 'r')
+		json_file = file.read()
+		dict = json.loads(json_file)
+		file.close()
+
+		for fridge in dict['fridges']:
+			if (fridge['ID'] == fridge_ID):
+				print("Ciao")
+				return fridge['products']
+		return "Fridge not found!"
+
+
+	#Add a new product in a specified fridge
+	def add_product(self, fridge_ID, added_product):
+			file = open(self.filename, 'r')
+			json_file = file.read()
+			dict = json.loads(json_file)
+			file.close()
+
+			for fridge in dict['fridges']:
+				if fridge['ID'] == fridge_ID:
+		
+					fridge['products'].append({'product_ID':str(added_product['product_ID']), 'Exp_date':{}})
+
+					file = open(self.filename, 'w')
+					file.write(json.dumps(dict))
+					file.close()
+
+					return "Product has been added"
+			return "Fridge not found!"
+
+
+	#Update a specified product --------> EQUAL TO ADD EXP_DATE
+	def update_product(self, fridge_ID, updated_product):
+			file = open(self.filename, 'r')
+			json_file = file.read()
+			dict = json.loads(json_file)
+			file.close()
+
+			for fridge in dict['fridges']:
+				if fridge['ID'] == fridge_ID:
+					for product in fridge['products']:
+						if product['product_ID'] == str(updated_product['product_ID']):
+							product['Exp_date']=update_product['Exp_date']
+							
+
+					file = open(self.filename, 'w')
+					file.write(json.dumps(dict))
+					file.close()
+
+					return "Expiration date of the product has been updated"
+			return "Fridge not found!"
+
+
+	#Delete a speicified product
+	def delete_product(self, fridge_ID, del_product_ID):
+		file = open(self.filename, 'r')
+		json_file = file.read()
+		dict = json.loads(json_file)
+		file.close()
+		flag = 0
+		for fridge in dict['fridges']:
+			if (fridge['ID'] == fridge_ID):
+				for product in fridge['products']:
+					if (product['product_ID'] == str(del_product_ID)):
+						flag = 1
+						fridge['products'].remove(product)
+
+				file = open(self.filename, 'w')
+				file.write(json.dumps(dict))
+				file.close()
+
+				if (flag==1):
+					return "Product has been removed"
+				else: 
+					return "Product not found!"
+		return "Fridge not found!"
+
+
+	#Add the expiration date to a product
+	def add_expiration(self, fridge_ID, product_ID, added_exp_date):
+		file = open(self.filename, 'r')
+		json_file = file.read()
+		dict = json.loads(json_file)
+		file.close()
+		for fridge in dict['fridges']:
+			if (fridge['ID'] == fridge_ID):
+				for product in fridge['products']:
+					if (product['product_ID']== product_ID):
+						expiration_date = product['Exp_date'] 
+						expiration_date['day'] = added_exp_date['day']
+						expiration_date['month'] = added_exp_date['month']
+						expiration_date['year'] = added_exp_date['year']
+
+						file = open(self.filename, 'w')
+						file.write(json.dumps(dict))
+						file.close()
+						return "Expiration date has been added"
+				return "Product not found!"
+		return "Fridge not found!"
+
+
+	#Return the expiration date of a specified product
+	def get_expiration(self, fridge_ID, product_ID):
+		file = open(self.filename, 'r')
+		json_file = file.read()
+		dict = json.loads(json_file)
+		file.close()
+		for fridge in dict['fridges']:
+			if fridge['ID'] == fridge_ID:
+				for product in fridge['products']:
+					if (product['product_ID']== product_ID):
+						return product['Exp_date']
+				return "Product not found!"
+		return "Fridge not found!"
+
+###################################### WASTED PRODUCTS MANAGEMENT ########################################
+
+	#Add a wasted product to a specified fridge
+	def add_wasted(self, fridge_ID, wasted_product):
+				file = open(self.filename, 'r')
+				json_file = file.read()
+				dict = json.loads(json_file)
+				file.close()
+
+				for fridge in dict['fridges']:
+					if fridge['ID'] == fridge_ID:
+						for product in fridge['products']:
+							if (product['product_ID'] == str(wasted_product['product_ID'])):
+
+								fridge['wasted'].append({'product_ID':str(wasted_product['product_ID'])})
+								#The product has to be eliminated also from the list of those available
+								fridge['products'].remove(product)
+
+								file = open(self.filename, 'w')
+								file.write(json.dumps(dict))
+								file.close()
+
+							return "Wasted product has been added"
+						return "Product was not present in the fridge!"
+				return "Fridge not found!"
+
+
+	#Return the list of wasted products in a fridge
+	def get_wasted(self, fridge_ID):
+				file = open(self.filename, 'r')
+				json_file = file.read()
+				dict = json.loads(json_file)
+				file.close()
+
+				for fridge in dict['fridges']:
+					if fridge['ID'] == fridge_ID:
+						return fridge['wasted']
+				return "Fridge not found!"
 
 ###################################### INACTIVE FRIDGE MANAGEMENT ########################################
    	
