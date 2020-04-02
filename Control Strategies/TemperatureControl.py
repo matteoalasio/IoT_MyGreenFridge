@@ -12,6 +12,9 @@ class TemperatureControl:
 	def get_temperature(self):
 		return self.t_curr
 
+	def update_init_temperature (self, t_curr):
+		self.t_init = t_curr
+		return self.t_init
 	#Check the current temperature
 	def temp_check(self, t_curr):
 		self.t_curr = int(t_curr)
