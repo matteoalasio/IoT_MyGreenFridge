@@ -6,23 +6,24 @@ import paho.mqtt.client as PahoMQTT
 from HumidityControl import *
 import threading
 
-#- MQTT_subscriber:		- /MyGreenFridge/ + user_ID + /humidity
-#- MQTT_publisher:		- /GreenFridge/ + user_ID + /Hcontrol 
-					#pubblica 0 in caso di valore della temperatura nella norma
-					#pubblica error in caso di valore della temperatura o troppo alto o troppo basso
-
+#- MQTT_subscriber:		- /MyGreenFridge/ + user_ID + fridge_ID + /humidity
+#- MQTT_publisher:		- /GreenFridge/ + user_ID + fridge_ID + /Hcontrol 
+					#publish 0 when the humidity is in the correct range
+					#publish +1 when the humidity is higher than the permitted value
+					#publish -1 when the humidity is lower than the permitted value
 
 class Hum_MQTT():
 
-	def __init__(self, user_ID, broker_ip, broker_port, control):
+	def __init__(self, user_ID, fridge_ID, broker_ip, broker_port, control):
 
 		self.user_ID = user_ID
+		self.fridge_ID = fridge_ID
 		self.broker = broker_ip
 		self.port = broker_port
 		self.control = control
 
 		# create an instance of paho.mqtt.client
-		self._paho_mqtt = PahoMQTT.Client(self.user_ID, False)
+		self._paho_mqtt = PahoMQTT.Client(self.user_ID)
 
 		# register the callback
 		self._paho_mqtt.on_connect = self.myOnConnect
@@ -33,26 +34,26 @@ class Hum_MQTT():
 
 	#Receive the message from the topic 
 	def myOnMessage(self, paho_mqtt, userdata, msg):
-		## A new message is received
+		# A new message is received
 		message = json.loads(msg.payload.decode("utf-8"))
 	
-		#humidity_read = msg.payload.decode("utf-8")
-		humidity_read = int(((message["e"])[0])["v"])
+		#temperature_read = msg.payload.decode("utf-8")
+		hum_read = int(((message["e"])[0])["v"]) #restituisce il valore --> JSON?
 
-		#Control the humidity
-		control_status = self.control.hum_check(humidity_read)
-		
+		#Control the temperature
+		control_status = self.control.hum_check(hum_read)
+
 		if control_status != None:
 			#the humidity at this point can be higher or lower wrt the limits
 			pub_mess = json.dumps({"v":control_status})
 			#{"v":1} if higher, {"v":-1} if lower
-			self.myPublish('/MyGreenFridge/' + self.user_ID + '/Hcontrol', pub_mess)
+			self.myPublish('/MyGreenFridge/' + self.user_ID + '/' + self.fridge_ID + '/Hcontrol', pub_mess)
 		else:
 			#The humidity is in the correct range
 			print ("Humidity is ok")
 			pub_mess = json.dumps({"v":0})
-			self.myPublish('/MyGreenFridge/' + self.user_ID + '/Hcontrol', pub_mess)
-				
+			self.myPublish('/MyGreenFridge/' + self.user_ID + '/' + self.fridge_ID +'/Hcontrol', pub_mess)
+					
 
 	def start(self, topic):
 
@@ -77,9 +78,9 @@ class Hum_MQTT():
 
 class HumidityThread(threading.Thread):
         
-        def __init__(self, MQTT_humidity, userID, fridgeID, sensor, catalog_URL, control):
+        def __init__(self, MQTT_Humidity, userID, fridgeID, sensor, catalog_URL, control):
             threading.Thread.__init__(self)
-            self.MQTT_humidity = MQTT_humidity
+            self.MQTT_Humidity = MQTT_Humidity
             self.user_ID = userID
             self.fridge_ID = fridgeID
             self.sensor_ID = sensor
@@ -89,30 +90,33 @@ class HumidityThread(threading.Thread):
         def run(self):
             while True:
                 
-                topic = "MyGreenFridge/"+str(self.user_ID)+"/humidity"
-                MQTT_humidity.mySubscribe(topic)
+                topic = "MyGreenFridge/"+str(self.user_ID) + '/' + self.fridge_ID + "/humidity"
+                MQTT_Humidity.mySubscribe(topic)
+               	#File di prova per fare da publisher
+               	with open('prova.txt', 'r') as myfile:
+                	data = myfile.read()
+                MQTT_Humidity.myPublish(topic, data)
 
-                
-                #MQTT_humidity.myPublish("MyGreenFridge/"+str(self.user_ID)+"/temperature", data)
-                humidity_curr = self.control.get_humidity()
+                hum_curr = self.control.get_humidity()
 
-                if (humidity_curr != self.control.get_init_humidity()):
+                #Only when the humidity value is different from the previous one, we change it in the json file
+                if (hum_curr != self.control.get_init_humidity()):
+                	print("Changing the humidity!")
+                	hum_init = self.control.update_init_humidity(hum_curr)
+               		url = self.catalog_url + "update_sensor?Fridge_ID=" + self.fridge_ID
 
-               		url = self.catalog_url + "add_sensor?Fridge_ID=" + self.fridge_ID
-
-                	print ("Current Humidity:", humidity_curr)
-                	sensor_to_add = {"sensor_ID": self.sensor_ID, "Value": humidity_curr}
+                	sensor_to_add = {"sensor_ID": self.sensor_ID, "Value": hum_curr}
 
                 #Posting on CATALOG the current value of the sensor
                 	try:
                 		r = requests.post(url, data = json.dumps(sensor_to_add))
                 		r.raise_for_status()
-                		print ("New value for humidity sensor added")
+
                		except requests.HTTPError as err:
                 		print ("Error in posting, aborting")
                 		return
 
-                time.sleep(10)
+                time.sleep(15)
 
 
 if __name__ == '__main__':														
@@ -123,8 +127,6 @@ if __name__ == '__main__':
 
 	catalog_IP = info["catalog_IP"]
 	catalog_Port = info["catalog_port"]
-	hum_init = info["hum_init"]
-	hum_curr = hum_init
 
 	file.close()
 	catalog_URL = "http://" + catalog_IP + catalog_Port
@@ -140,18 +142,26 @@ if __name__ == '__main__':
 
 	r2 = requests.get(catalog_URL + "fridges")
 	fridges = r2.json()
+
+	#It iterates on all the available fridges in the system
 	for fridge in fridges["fridges"]:
 		user_ID =  fridge["user"]
 		fridge_ID = fridge["ID"]
 
-		HumidityController_init = HumidityControl(hum_init, hum_curr)
-		
-		MQTT_humidity = Hum_MQTT(user_ID, broker_IP, broker_port, HumidityController_init)
-	
-		MQTT_humidity.start("/MyGreenFridge/" + user_ID + "/humidity")
-		#MQTT_humidity.mySubscribe("/MyGreenFridge/110995/humidity")
+		for sensor in fridge["sensors"]:
+			if (sensor["sensor_ID"] == "Humidity"):
+				hum_init = sensor["Value"]
 
-		Humidity_Thread = HumidityThread(MQTT_humidity, user_ID, fridge_ID, "Humidity", catalog_URL, HumidityController_init)
+		hum_curr = hum_init
+
+		HumidityController = HumidityControl(hum_init, hum_curr)
+		
+		MQTT_Humidity = Hum_MQTT(user_ID, fridge_ID, broker_IP, broker_port, HumidityController)
+	
+		MQTT_Humidity.start("/MyGreenFridge/" + str(user_ID) + '/' + str(fridge_ID) + "/humidity")
+
+		Humidity_Thread = HumidityThread(MQTT_Humidity, user_ID, fridge_ID, "Humidity", catalog_URL, HumidityController)
 		#REST_temperature = Temp_REST(fridge_ID, "Temperature", catalog_URL, TemperatureController_init)
 		#REST_temperature.run()
-		Humidity_Thread.run()
+
+		Humidity_Thread.start()

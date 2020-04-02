@@ -12,12 +12,14 @@ class HumidityControl:
 	def get_humidity(self):
 		return self.h_curr
 
+	def update_init_humidity (self, h_curr):
+		self.h_init = h_curr
+		return self.h_init
 	#Check the current temperature
 	def hum_check(self, h_curr):
-	
 		self.h_curr = int(h_curr)
 
-		h_high_lim =  50 #50% of humidity is considered as the highest humidity in the fridge
+		h_high_lim = 50 #50% of humidity is considered as the highest humidity in the fridge
 		h_low_lim = 10 #10% of humidity is considered as the lowest humidity in the fridge
 
 		if (self.h_curr>=h_high_lim):
