@@ -12,10 +12,12 @@ GET:
 - /fridges/ : Provide information about all the available fridges
 - /fridge?ID=<id> : Provide information about a fridge with a specific fridge_ID
 - /products?Fridge_ID=<IDFridge> : Provide information about the available products in a fridge
+- /web_service?Name=<NameWS> : Provide the IP of a specified WS
 - /wasted?Fridge_ID=<IDFridge> : Provide information about the wasted products of a fridge
 - /expiration_date?Fridge_ID=<IDFridge>&Product_ID=<IDProduct> : Provide information about the expiration date 
                                                                 of a specified product
 - /association?Fridge_ID=<IDFridge>&User_ID=<IDUser> : Association between a user and a fridge
+- /user_fridge?User_ID=<IDUser> : Given a user, it returns his fridge
 """
 
 """
@@ -36,7 +38,9 @@ POST:
 - /add_expiration?Fridge_ID=<IDFridge>&Product_ID=<IDProduct> : Add the expiration date of a specified product
     The body required is {"day":"", "month":"", "year":""}
 - /add_wasted?Fridge_ID=<IDFridge> : Add a wasted product to a specified fridge
-    The body required is {"product_ID":""}        
+    The body required is {"product_ID":""}    
+- /add_WS :Add a Web Service to the catalog structure
+    #The body required is {"name":"", "IP":"", "port":""}    
 """
 
 """
@@ -56,7 +60,7 @@ class Catalog_REST:
     exposed = True
 
     def __init__(self):
-        self.catalog = Catalog("test_file.txt")
+        self.catalog = Catalog("test_file_2.json")
 
 
 ########################################## GET FUNCTION ############################################
@@ -122,6 +126,15 @@ class Catalog_REST:
                 {'Wasted_products': self.catalog.get_wasted(fridge_ID)})
             return info
 
+        #/web_service?Name=<NameWS>
+        # Information about the wasted products of a fridge
+        elif uri[0] == 'web_service':
+            name = params['Name']
+            info = json.dumps({"URL" : self.catalog.get_ws(name)})
+            if info == "Web Service not found!":
+                raise cherrypy.HTTPError(404, info)
+            return info
+
         #/expiration_date?Fridge_ID=<IDFridge>&Product_ID=<IDProduct>
         # Information about the expiration date of a specified product
         elif uri[0] == 'expiration_date':
@@ -151,6 +164,16 @@ class Catalog_REST:
                 raise cherrypy.HTTPError(404, info_association)
 
             return info_association
+
+        # /user_fridge?User_ID=<IDUser>
+        # Given a user, it returns his fridge
+        elif uri[0] == 'user_fridge':
+            user_ID = params['User_ID']
+            info = self.catalog.get_user_fridge(user_ID)
+            if info == "User not found!":
+                raise cherrypy.HTTPError(404, info)
+            return info
+
 
         else:
             raise cherrypy.HTTPError(
@@ -254,6 +277,14 @@ class Catalog_REST:
                 raise cherrypy.HTTPError(404, info_added)
             if info_added == "Product was not present in the fridge!":
                 raise cherrypy.HTTPError(404, info_added)
+            return info_added
+
+
+        #/add_WS
+        #Add a Web Service to the catalog structure
+        #The body required is {"name":"", "IP":"", "port":""}
+        if uri[0] == 'add_WS':
+            info_added = self.catalog.add_WS(body)
             return info_added
 
         else:

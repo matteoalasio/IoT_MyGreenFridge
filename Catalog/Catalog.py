@@ -226,6 +226,17 @@ class Catalog(object):
 				return "Fridge has been deleted"
 		return "Fidge not found!"
 
+	#Given the user_ID, it returns the relative fridge
+	def get_user_fridge(self, user_ID):
+		file = open(self.filename, 'r')
+		dict = json.loads(file.read())
+		file.close()
+
+		for fridge in dict['fridges']:
+			if fridge['user'] == user_ID:
+				return fridge['ID']
+		return "User not found!"
+
 ###################################### SENSORS MANAGEMENT ########################################
 
     #Add a new sensor to a specified fridge
@@ -472,3 +483,46 @@ class Catalog(object):
 		file.write(json.dumps(dict))
 		file.close()
 
+
+###################################### WEB SERVICES ########################################
+
+	#Register a new WS on Catalog
+	def add_WS (self, added_WS):
+		file = open(self.filename, 'r')
+		json_file = file.read()
+		dict = json.loads(json_file)
+		file.close()
+
+		for WS in dict['web_services']:
+			if (WS['name']==str(added_WS['name'])):
+				if (WS['IP']==str(added_WS['IP'])):
+					if (WS['port']==str(added_WS['port'])):
+						return "Web Service already present"
+					else:
+						WS['port']=str(added_WS['port'])
+						return "Port number has been updated"
+				else:
+					WS['IP']=str(added_WS['IP'])
+					return "IP has been updated"
+
+		dict['web_services'].append({'name':str(added_WS['name']), 'IP':str(added_WS['IP']), 'port':str(added_WS['port'])})
+
+		file = open(self.filename, 'w')
+		file.write(json.dumps(dict))
+		file.close()
+
+		return "Web Service has been added"
+
+
+	#It returns the IP of a specified WS
+	def get_ws (self, Name_WS):
+		file = open(self.filename, 'r')
+		json_file = file.read()
+		dict = json.loads(json_file)
+		file.close()
+
+		for ws in dict['web_services']:
+			if (ws['name']==Name_WS):
+				ip_port = {"IP":str(ws['IP']), "port":str(ws['port'])}
+				return ip_port
+		return "Web Service not found!"
