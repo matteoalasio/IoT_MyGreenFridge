@@ -13,10 +13,48 @@ import requests
 import sys
 import urllib
 
+"""
+Quello che tu (essendo thinkspeak) sai è l'user_ID, perché altrimenti dubito potrai mai sapere quali sono i prodotti che stai buttando o in generale i dati che ti appartengono
+Esiste una funzione sul catalog che, dato lo user_ID, ti restituisce il fridge_ID corrispondente. (Un frigo può avere un solo user) *questa richiesta va fatta con una GET al catalog, ed è del tipo /user_fridge?User_ID=...*
+Quindi la prima cosa che devi fare è sicuramente una get di questo tipo per conoscere chi è il frigo
+Dopo che sai chi è perché appunto ti viene ritornato, puoi fare un'altra GET al Catalog chiedendo con /wasted?Fridge_ID=... l'elenco dei prodotti che l'utente ha buttato
+@PetronillaR spero di averti chiarito le idee
+Nel primo caso devi scrivere:
+url_richiesta= http://catalogIP:catalogPort/user_fridge?User_ID=QUELLO CHE CONOSCI
+richiesta = requests.get(url_richiesta)
+Nel secondo caso sarà:
+url_richiesta= http://catalogIP:catalogPort/wasted?Fridge_ID=QUELLO CHE ORMAI CONOSCI
+richiesta = requests.get(url_richiesta)
+"""
+
+class ThingSpeakAdaptorREST(object):
+    
+    exposed = True
+
+    def __init__(self, ip, userID, fridgeID):
+        # IP and port
+        self.ip = ip
+        self.port = "8080"
+        
+        # save userID and fridgeID
+        self.userID = userID
+        self.fridgeID = fridgeID
+
+
+    def GET(self, *uri):
+
+        if (len(uri)!=1):
+            raise cherrypy.HTTPError(404, "Error: wrong number of uri")
+        elif (uri[0] == 'wasted'):
+            wasted_products = self.get_wasted(self.fridgeID)
+
+
+
+
 ## ---> subscriber class, to manage the messages in MQTT
 class ThingSpeakDataManager :
 
-    def __init__(self, userID, broker, port):
+    def __init__(self, userID, fridgeID, broker, port):
         """ 
         This is the constructor function of the class. 
         -----
@@ -28,6 +66,7 @@ class ThingSpeakDataManager :
 
         """
         self.userID = userID
+        self.fridgeID = fridgeID
         self.broker = broker
         self.port = port
         self.topic = "" 
@@ -80,27 +119,22 @@ class ThingSpeakDataManager :
         msg_dict = json.loads(msg.payload.decode('string-escape').strip('"'))
         value = ((msg_dict["e"])[0])["v"]
 
-        if (msg.topic == '/MyGreenFridge/'+ self.userID +"temperature"):
+        if (msg.topic == '/MyGreenFridge/'+ self.userID + "/" + self.fridgeID + "/temperature"):
             # This is all temporary. I don't know what to put in these links
-            data = urllib.urlopen("https://api.thingspeak.com/update?api_key=AFD10RO5MXMAS7XU&field1="+str(value))
+            # CANALI DIVERSI CON UN SOLO FIELD? O STESSO CANALE E VARI FIELD?
+            data = urllib.urlopen("https://api.thingspeak.com/update?api_key=PM5FIRRRHSDYV80C&field1="+str(value))
             print ("Temperature value updated")
             # Where do I take the value? 
             print value
 
-            elif (msg.topic == '/MyGreenFridge/'+ self.userID +"/humidity") :
-                data = urllib.urlopen("https://api.thingspeak.com/update?api_key=AFD10RO5MXMAS7XU&field1="+str(value))
+            elif (msg.topic == '/MyGreenFridge/'+ self.userID + "/" + self.fridgeID +"/humidity") :
+                data = urllib.urlopen("https://api.thingspeak.com/update?api_key=PM5FIRRRHSDYV80C&field2="+str(value))
                 print ("Humidity value updated")
                 print value
 
-            elif (msg.topic =='/MyGreenFridge/'+ self.userID +"/ean0") :
-                data = urllib.urlopen("https://api.thingspeak.com/update?api_key=J4GGNYGH12CM8ZGY&field1="+str(value))
+            elif (msg.topic =='/MyGreenFridge/'+ self.userID + "/" + self.fridgeID +"/wasted_products") :
+                data = urllib.urlopen("https://api.thingspeak.com/update?api_key=PM5FIRRRHSDYV80C&field3="+str(value))
                 print ("Input EAN code updated")
-                print value
-
-            elif (msg.topic == '/MyGreenFridge/'+ self.userID +"/ean1") :
-                self.pCalc.energyLightCalc(int(value))
-                data = urllib.urlopen("https://api.thingspeak.com/update?api_key=U5K874E6RLTA6PCE&field1="+str(value))
-                print ("Outout EAN code updated")
                 print value
 
             #elif (msg.topic == '/MyGreenFridge/'+ self.userID +"/Tcontrol"):
@@ -158,3 +192,15 @@ if __name__ == "__main__":
 
 
 
+# Per prendere informazioni sui prodotti che sono consumati la richiesta va fatta in REST al catalog.
+
+# PER TESTARE DEVO USARE MOSQUITTO
+# Devo configurare la pagina di MQTT sul thingspeak adaptor, dopodiché quando uso Mosquitto devo specificare qual è
+# il mio broker, la porta, qual è la funzione (pub), il topic e il messaggio. Apro il terminale
+# gli passo questa linea di codice. Prima ovviamente devo runnare il thingspeak adaptor. Quello che lui fa è il
+# subscriber. Scrivi prima il topic, assicurati che esca SUBSCRIBING TO TOPIC ETC. ETC. Quando il codice sta runnando
+# apro un'altra finestra e inizio a fare da publisher con mosquitto. Il broker non devo aprirlo, lo fa in automatico
+# quando apro mosquitto.
+
+# se voglio testare solo thingspeak e non anche il mqtt posso passare dei valori a caso nel main. Magari devo cambiare
+# un po' il modo in cui ho impostato le clasi in questo programma. Vedere il main del temperatureWS. 
