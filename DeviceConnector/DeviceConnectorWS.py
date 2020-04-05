@@ -215,11 +215,13 @@ class RegistrationThread(threading.Thread):
         def run(self):
             url = "http://"+ catalogIP + ":"+ catalogPort + "/"
             while True:
-                # register user
+                ### register user
                 dictUser = {"ID": deviceConnector.userID,
                             "nickname": None}
                 jsonUser = json.dumps(dictUser)
                 #r1 = requests.post(url+"add_user", data=jsonUser)
+
+                ### register fridge
                 dictFridge = {"ID": deviceConnector.fridgeID,
                               "user": None,
                               "sensors":[],
@@ -228,9 +230,51 @@ class RegistrationThread(threading.Thread):
                               "port": deviceConnector.port}
                 jsonFridge = json.dumps(dictFridge)
                 #r2 = requests.post(url+"add_fridge", data=jsonFridge)
+
+                ### register sensors in the fridge
+
+                ##### temperature sensor
+                Tsenml = deviceConnector.get_temperature()
+                Tval = ((Tsenml['e'])[0])['v']
+                dictTemp = {"sensor_ID": deviceConnector.temperatureID,
+                            "Value": Tval}
+                jsonTemp = json.dumps(dictTemp)
+                #r3 = requests.post(url+"add_sensor?Fridge_ID=" + deviceConnector.fridgeID, data=jsonTemp)
+                
+                ##### humidity sensor
+                Hsenml = deviceConnector.get_humidity()
+                Hval = ((Hsenml['e'])[0])['v']
+                dictHum = {"sensor_ID": deviceConnector.humidityID,
+                            "Value": Hval}
+                jsonHum = json.dumps(dictHum)
+                #r4 = requests.post(url+"add_sensor?Fridge_ID=" + deviceConnector.fridgeID, data=jsonHum)
+
+                ##### camera0
+                C0senml = deviceConnector.get_camera0()
+                C0val = ((C0senml['e'])[0])['v']
+                dictC0 = {"sensor_ID": deviceConnector.camera0ID,
+                            "Value": C0val}
+                jsonC0 = json.dumps(dictC0)
+                #r5 = requests.post(url+"add_sensor?Fridge_ID=" + deviceConnector.fridgeID, data=jsonC0)
+
+                ##### camera0
+                C1senml = deviceConnector.get_camera1()
+                C1val = ((C1senml['e'])[0])['v']
+                dictC1 = {"sensor_ID": deviceConnector.camera1ID,
+                            "Value": C1val}
+                jsonC1 = json.dumps(dictC1)
+                #r6 = requests.post(url+"add_sensor?Fridge_ID=" + deviceConnector.fridgeID, data=jsonC1)
+                
+                
+                
                 print(url)
                 print(dictUser)
                 print(dictFridge)
+                print(dictTemp)
+                print(dictHum)
+                print(dictC0)
+                print(dictC1)
+
                 time.sleep(5)
 
 
@@ -254,8 +298,8 @@ if __name__ == '__main__':
     # PROVA --> poi sistemiamo da dove vengono questi parametri
     userID = "pippo"
     clientID = "ciccio"
-    broker = "localhost"
-    port = 1883
+    brokerIP = "localhost"
+    brokerPort = 1883
     
     # read configuration file
     with open("configDeviceConnector.txt", "r") as configFile:
@@ -267,15 +311,30 @@ if __name__ == '__main__':
     catalogIP = configDict["catalogIP"]
     catalogPort = configDict["catalogPort"]
     fridgeID = configDict["fridgeID"]
-    
+    temperatureID = configDict["temperatureID"]
+    humidityID = configDict["humidityID"]
+    camera0ID = configDict["camera0ID"]
+    camera1ID = configDict["camera1ID"]
+
     print("Catalog IP is: " + catalogIP)
     print("Catalog port is " + catalogPort)
+
+    # retrieve the broker IP and the broker port from the Catalog
+    #catalogURL = "http://" + catalogIP + ":" + catalogPort
+    #try:
+        #r = requests.get(catalogURL + "/broker")
+        #broker = r.json()
+        #brokerIP = broker["broker_IP"]
+        #brokerPort = broker["broker_port"]
+    #except requests.HTTPError as err:
+        #print ("Error in retrieving the broker")
+        #sys.exit()
     
     
     # instantiate a DeviceConnector object
-    deviceConnector = DeviceConnector(ip, userID, fridgeID)
+    deviceConnector = DeviceConnector(ip, userID, fridgeID, temperatureID, humidityID, camera0ID, camera1ID)
     
-    deviceConnectorMQTT = DeviceConnectorMQTT(clientID, broker, port, deviceConnector)
+    deviceConnectorMQTT = DeviceConnectorMQTT(clientID, brokerIP, brokerPort, deviceConnector)
     deviceConnectorMQTT.start()
     
     tempThread = TemperatureThread(deviceConnector, deviceConnectorMQTT)
@@ -289,10 +348,12 @@ if __name__ == '__main__':
     cam0Thread.start()
     cam1Thread.start()
     regThread.start()
+
+    devPort = 8888
     
     # deploy the DeviceConnectorREST class and start the web server
     cherrypy.tree.mount(DeviceConnectorREST(deviceConnector), '/', conf)
     cherrypy.config.update({'server.socket_host': '0.0.0.0'})
-    cherrypy.config.update({'server.socket_port': 8080})
+    cherrypy.config.update({'server.socket_port': devPort})
     cherrypy.engine.start()
     cherrypy.engine.block()
