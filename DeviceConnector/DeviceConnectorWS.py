@@ -6,6 +6,7 @@ import socket
 import paho.mqtt.client as PahoMQTT       
 import threading
 import requests
+import sys
 
 class DeviceConnectorREST(object):
     
@@ -219,7 +220,7 @@ class RegistrationThread(threading.Thread):
                 dictUser = {"ID": deviceConnector.userID,
                             "nickname": None}
                 jsonUser = json.dumps(dictUser)
-                #r1 = requests.post(url+"add_user", data=jsonUser)
+                r1 = requests.post(url+"add_user", data=jsonUser)
 
                 ### register fridge
                 dictFridge = {"ID": deviceConnector.fridgeID,
@@ -229,7 +230,7 @@ class RegistrationThread(threading.Thread):
                               "IP": deviceConnector.ip,
                               "port": deviceConnector.port}
                 jsonFridge = json.dumps(dictFridge)
-                #r2 = requests.post(url+"add_fridge", data=jsonFridge)
+                r2 = requests.post(url+"add_fridge", data=jsonFridge)
 
                 ### register sensors in the fridge
 
@@ -239,7 +240,7 @@ class RegistrationThread(threading.Thread):
                 dictTemp = {"sensor_ID": deviceConnector.temperatureID,
                             "Value": Tval}
                 jsonTemp = json.dumps(dictTemp)
-                #r3 = requests.post(url+"add_sensor?Fridge_ID=" + deviceConnector.fridgeID, data=jsonTemp)
+                r3 = requests.post(url+"add_sensor?Fridge_ID=" + deviceConnector.fridgeID, data=jsonTemp)
                 
                 ##### humidity sensor
                 Hsenml = deviceConnector.get_humidity()
@@ -247,7 +248,7 @@ class RegistrationThread(threading.Thread):
                 dictHum = {"sensor_ID": deviceConnector.humidityID,
                             "Value": Hval}
                 jsonHum = json.dumps(dictHum)
-                #r4 = requests.post(url+"add_sensor?Fridge_ID=" + deviceConnector.fridgeID, data=jsonHum)
+                r4 = requests.post(url+"add_sensor?Fridge_ID=" + deviceConnector.fridgeID, data=jsonHum)
 
                 ##### camera0
                 C0senml = deviceConnector.get_camera0()
@@ -255,25 +256,28 @@ class RegistrationThread(threading.Thread):
                 dictC0 = {"sensor_ID": deviceConnector.camera0ID,
                             "Value": C0val}
                 jsonC0 = json.dumps(dictC0)
-                #r5 = requests.post(url+"add_sensor?Fridge_ID=" + deviceConnector.fridgeID, data=jsonC0)
+                r5 = requests.post(url+"add_sensor?Fridge_ID=" + deviceConnector.fridgeID, data=jsonC0)
 
-                ##### camera0
+                ##### camera1
                 C1senml = deviceConnector.get_camera1()
                 C1val = ((C1senml['e'])[0])['v']
                 dictC1 = {"sensor_ID": deviceConnector.camera1ID,
                             "Value": C1val}
                 jsonC1 = json.dumps(dictC1)
-                #r6 = requests.post(url+"add_sensor?Fridge_ID=" + deviceConnector.fridgeID, data=jsonC1)
+                r6 = requests.post(url+"add_sensor?Fridge_ID=" + deviceConnector.fridgeID, data=jsonC1)
+
+
+                ### associate fridge with user
+                r7 = requests.get(url+"association?Fridge_ID=" + deviceConnector.fridgeID + "&User_ID=" + deviceConnector.userID)
+
+                ### register DeviceConnectorWS as a web service
+                dictWS = {"name": ("DeviceConnectorWS_"+ deviceConnector.userID + "_" + deviceConnector.fridgeID),
+                                    "IP": deviceConnector.ip,
+                                    "port": deviceConnector.port}
+                jsonWS = json.dumps(dictWS)
+                r8 = requests.post(url+"add_WS", data=jsonWS)
                 
-                
-                
-                print(url)
-                print(dictUser)
-                print(dictFridge)
-                print(dictTemp)
-                print(dictHum)
-                print(dictC0)
-                print(dictC1)
+                print("Fridge registered.")
 
                 time.sleep(5)
 
@@ -293,7 +297,8 @@ if __name__ == '__main__':
     # get IP address of the RPI
     s = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
     s.connect(("8.8.8.8", 80))
-    ip = s.getsockname()[0]
+    devIP = s.getsockname()[0]
+    devPort = 8082
     
     # PROVA --> poi sistemiamo da dove vengono questi parametri
     userID = "pippo"
@@ -302,10 +307,13 @@ if __name__ == '__main__':
     brokerPort = 1883
     
     # read configuration file
-    with open("configDeviceConnector.txt", "r") as configFile:
+    try:
+        configFile = open("configDeviceConnector.txt", "r")
         configJson = configFile.read()
         configDict = json.loads(configJson)
         configFile.close()
+    except OSError:
+        sys.exit("ERROR: cannot open the configuration file.")
         
     userID = configDict["userID"]
     catalogIP = configDict["catalogIP"]
@@ -320,19 +328,19 @@ if __name__ == '__main__':
     print("Catalog port is " + catalogPort)
 
     # retrieve the broker IP and the broker port from the Catalog
-    #catalogURL = "http://" + catalogIP + ":" + catalogPort
-    #try:
-        #r = requests.get(catalogURL + "/broker")
-        #broker = r.json()
-        #brokerIP = broker["broker_IP"]
-        #brokerPort = broker["broker_port"]
-    #except requests.HTTPError as err:
-        #print ("Error in retrieving the broker")
-        #sys.exit()
+    catalogURL = "http://" + catalogIP + ":" + catalogPort
+    try:
+        r = requests.get(catalogURL + "/broker")
+        broker = r.json()
+        brokerIP = broker["broker_IP"]
+        brokerPort = broker["broker_port"]
+    except requests.RequestException as err:
+        #sys.exit("ERROR: cannot retrieve the Broker IP from the Catalog.")
+        pass
     
     
     # instantiate a DeviceConnector object
-    deviceConnector = DeviceConnector(ip, userID, fridgeID, temperatureID, humidityID, camera0ID, camera1ID)
+    deviceConnector = DeviceConnector(devIP, devPort, userID, fridgeID, temperatureID, humidityID, camera0ID, camera1ID)
     
     deviceConnectorMQTT = DeviceConnectorMQTT(clientID, brokerIP, brokerPort, deviceConnector)
     deviceConnectorMQTT.start()
@@ -348,8 +356,6 @@ if __name__ == '__main__':
     cam0Thread.start()
     cam1Thread.start()
     regThread.start()
-
-    devPort = 8888
     
     # deploy the DeviceConnectorREST class and start the web server
     cherrypy.tree.mount(DeviceConnectorREST(deviceConnector), '/', conf)

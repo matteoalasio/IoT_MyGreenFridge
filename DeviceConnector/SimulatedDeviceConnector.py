@@ -5,11 +5,11 @@ import socket
 class DeviceConnector(object):
     
     # constructor
-    def __init__(self, ip, userID, fridgeID, temperatureID, humidityID, camera0ID, camera1ID):
+    def __init__(self, ip, port, userID, fridgeID, temperatureID, humidityID, camera0ID, camera1ID):
 
         # IP and port
         self.ip = ip
-        self.port = "8080"
+        self.port = port
         
         self.userID = userID
         self.fridgeID = fridgeID

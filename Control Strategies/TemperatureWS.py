@@ -5,6 +5,7 @@ import cherrypy
 import paho.mqtt.client as PahoMQTT
 from TemperatureControl import *
 import threading
+import sys
 
 #- MQTT_subscriber:		- /MyGreenFridge/ + user_ID + fridge_ID + /temperature
 #- MQTT_publisher:		- /GreenFridge/ + user_ID + fridge_ID + /Tcontrol 
