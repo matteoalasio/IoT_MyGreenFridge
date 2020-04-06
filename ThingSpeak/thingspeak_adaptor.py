@@ -33,31 +33,6 @@ url_richiesta= http://catalogIP:catalogPort/wasted?Fridge_ID=QUELLO CHE ORMAI CO
 richiesta = requests.get(url_richiesta)
 
 """
-
-class ThingSpeakAdaptorREST(object):
-    
-    exposed = True
-
-    def __init__(self, ip, userID, fridgeID):
-        # IP and port
-        self.ip = ip
-        self.port = "8080"
-        
-        # save userID and fridgeID
-        self.userID = userID
-        self.fridgeID = fridgeID
-
-
-    def GET(self, *uri):
-
-        if (len(uri)!=1):
-            raise cherrypy.HTTPError(404, "Error: wrong number of uri")
-        elif (uri[0] == 'wasted'):
-            wasted_products = self.get_wasted(self.fridgeID)
-
-
-
-
 ## ---> subscriber class, to manage the messages in MQTT
 class ThingSpeakDataManager :
 
@@ -166,27 +141,57 @@ class ThingSpeakDataManager :
         self._paho_mqtt.loop_stop()
         self._paho_mqtt.disconnect()
     
-
 if __name__ == "__main__":
 
-    conf_file = open("configControl.txt", 'r') 
-    conf_file_dict = json.loads(conf_file.read())
-    conf_file.close()
-    userID = conf_file_dict['userID'] # I guess this is how it will be called in the config file
-    catalogIP = conf_file_dict['catalogip'] # Check
+    # ???
+    conf = {
+        '/': {
+            'request.dispatch': cherrypy.dispatch.MethodDispatcher(),
+            'tools.sessions.on': True
+        }
+    }
 
+    # ???
+    # s = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
+    # s.connect(("8.8.8.8", 80))
+    # devIP = s.getsockname()[0]
+    # devPort = 8082
+
+    # read configuration file
     try:
-		r2 = requests.get('http://'+ catalogIP + ':8080/broker')
-		r2.raise_for_status()
+        configFile = open("configThingSpeak.txt", "r")
+        configJson = configFile.read()
+        configDict = json.loads(configJson)
+        configFile.close()
+    except OSError:
+        sys.exit("ERROR: cannot open the configuration file.")
 
-		brokerip = r2.json()['broker_IP']
-		print brokerip
-		brokerport = r2.json()['broker_port']
-    except requests.HTTPError as err:
-            print 'Error in posting, aborting' 
-            sys.exit()
+    userID = configDict['userID'] 
+    catalogIP = configDict['catalogIP']
+    catalogPort = configDict['catalogPort']
+    fridgeID = configDict["fridgeID"] # Do I have it? Or should I ask for the conversion to the catalog?
 
-    # in case I do some other estimation, see at github for references. 
+    print("Catalog IP is: " + catalogIP)
+    print("Catalog port is " + catalogPort)
+    
+    # retrieve the broker IP and the broker port from the Catalog
+    catalogURL = "http://" + catalogIP + ":" + catalogPort
+    try:
+        r = requests.get(catalogURL + "/broker")
+        broker = r.json()
+        brokerIP = broker["broker_IP"]
+        brokerPort = broker["broker_port"]
+    except requests.RequestException as err:
+        #sys.exit("ERROR: cannot retrieve the Broker IP from the Catalog.")
+        pass
+    
+    # Taking the wasted products here
+    try:
+        r2 = requests.get(catalogURL+ "/wasted")
+        wasted_json = r2.json()
+    except requests.RequestException as err:
+        #did not find the list of wasted products
+        pass
 
     tsdm = ThingSpeakDataManager(deviceID, brokerip, brokerport)
 
@@ -211,3 +216,7 @@ if __name__ == "__main__":
 
 # se voglio testare solo thingspeak e non anche il mqtt posso passare dei valori a caso nel main. Magari devo cambiare
 # un po' il modo in cui ho impostato le clasi in questo programma. Vedere il main del temperatureWS. 
+
+### DA CHIEDERE MARTEDì:
+
+# Perché io nel config non dovrei avere il frigdeID?
