@@ -89,7 +89,7 @@ class Catalog(object):
 				return "User already present"
 		
 		#If it is not present, add it		
-		dict['users'].append({'ID': str(added_user['ID']),'nickname': None})
+		dict['users'].append({'ID': str(added_user['ID']),'nickname': None, 'ID_bot':None})
 		file = open(self.filename, 'w')
 		file.write(json.dumps(dict))
 		file.close()
@@ -106,6 +106,7 @@ class Catalog(object):
 		for user in dict['users']:
 			if user['ID'] == str(updated_user['ID']):
 				user['nickname'] = updated_user['nickname']
+				user['ID_bot'] = updated_user['ID_bot']
 				file = open(self.filename, 'w')
 				file.write(json.dumps(dict))
 				file.close()

@@ -28,7 +28,7 @@ POST:
 - /add_user/ : Registration of a new user
     The body required is {"ID":""}
 - /update_user/ : Update a specified user adding the nickname
-    The body required is {"ID":"", "nickname":""}
+    The body required is {"ID":"", "nickname":"", "ID_bot":""}
 - /add_sensor?Fridge_ID=<IDFridge> : Add a sensor to the correspondant Fridge
     The body required is {"sensor_ID":"", "Value":""}
 - /update_sensor?Fridge_ID=<IDFridge> : Update a sensor given the correspondant fridge
