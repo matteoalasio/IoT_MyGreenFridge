@@ -15,16 +15,17 @@ import sys
 
 class Temp_MQTT():
 
-	def __init__(self, user_ID, fridge_ID, broker_ip, broker_port, control):
+	def __init__(self, client_ID, user_ID, fridge_ID, broker_ip, broker_port, control):
 
 		self.user_ID = user_ID
+		self.client_ID = client_ID
 		self.fridge_ID = fridge_ID
 		self.broker = broker_ip
 		self.port = broker_port
 		self.control = control
 
 		# create an instance of paho.mqtt.client
-		self._paho_mqtt = PahoMQTT.Client(self.user_ID)
+		self._paho_mqtt = PahoMQTT.Client(self.client_ID)
 
 		# register the callback
 		self._paho_mqtt.on_connect = self.myOnConnect
@@ -39,22 +40,9 @@ class Temp_MQTT():
 		message = json.loads(msg.payload.decode("utf-8"))
 	
 		#temperature_read = msg.payload.decode("utf-8")
-		temperature_read = int(((message["e"])[0])["v"]) #restituisce il valore --> JSON?
+		temperature_read = int(((message["e"])[0])["v"])
+		print ("Current temperature:", temperature_read)
 
-		#Control the temperature
-		control_status = self.control.temp_check(temperature_read)
-
-		if control_status != None:
-			#the temperature at this point can be higher or lower wrt the limits
-			pub_mess = json.dumps({"v":control_status})
-			#{"v":1} if higher, {"v":-1} if lower
-			self.myPublish('/MyGreenFridge/' + self.user_ID + '/' + self.fridge_ID + '/Tcontrol', pub_mess)
-		else:
-			#The temperature is in the correct range
-			print ("Temperature is ok")
-			pub_mess = json.dumps({"v":0})
-			self.myPublish('/MyGreenFridge/' + self.user_ID + '/' + self.fridge_ID +'/Tcontrol', pub_mess)
-					
 
 	def start(self, topic):
 
@@ -99,6 +87,23 @@ class TemperatureThread(threading.Thread):
                 #MQTT_temperature.myPublish(topic, data)
 
                 temp_curr = self.control.get_temperature()
+                #Control the temperature
+                control_status = self.control.temp_check(temp_curr)
+                topic_pub = "/MyGreenFridge/" + str(self.user_ID) + '/' + str(self.fridge_ID) + "/Tcontrol"
+
+                if control_status != None:
+
+					#the temperature at this point can be higher or lower wrt the limits
+                	pub_mess = json.dumps({"v":control_status})
+
+					#{"v":1} if higher, {"v":-1} if lower
+                	MQTT_temperature.myPublish(topic_pub, pub_mess)
+                else:
+
+                	print ("Temperature is ok")
+                	pub_mess = json.dumps({"v":0})
+                	MQTT_temperature.myPublish(topic_pub, pub_mess)
+							
 
                 #Only when the temperature value is different from the previous one, we change it in the json file
                 if (temp_curr != self.control.get_init_temperature()):
@@ -144,26 +149,30 @@ if __name__ == '__main__':
 
 	r2 = requests.get(catalog_URL + "fridges")
 	fridges = r2.json()
-
+	i=0
 	#It iterates on all the available fridges in the system
 	for fridge in fridges["fridges"]:
 		user_ID =  fridge["user"]
 		fridge_ID = fridge["ID"]
+		client_ID = "temperatureclient_" + str(i)
+
+		i=i+1
 
 		for sensor in fridge["sensors"]:
-			if (sensor["sensor_ID"] == "Temperature"):
+			if (sensor["sensor_ID"] == "temperature"):
 				temp_init = sensor["Value"]
+
 
 		temp_curr = temp_init
 
 		TemperatureController = TemperatureControl(temp_init, temp_curr)
 		
-		MQTT_temperature = Temp_MQTT(user_ID, fridge_ID, broker_IP, broker_port, TemperatureController)
+		MQTT_temperature = Temp_MQTT(client_ID, user_ID, fridge_ID, broker_IP, broker_port, TemperatureController)
 	
 		MQTT_temperature.start("/MyGreenFridge/" + str(user_ID) + '/' + str(fridge_ID) + "/temperature")
 		#MQTT_temperature.mySubscribe("/MyGreenFridge/110995/temperature")
 
-		Temperature_Thread = TemperatureThread(MQTT_temperature, user_ID, fridge_ID, "Temperature", catalog_URL, TemperatureController)
+		Temperature_Thread = TemperatureThread(MQTT_temperature, user_ID, fridge_ID, "temperature", catalog_URL, TemperatureController)
 		#REST_temperature = Temp_REST(fridge_ID, "Temperature", catalog_URL, TemperatureController_init)
 		#REST_temperature.run()
 
