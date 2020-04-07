@@ -1,20 +1,16 @@
-"""
-The Fridge Status Adaptor is an MQTT subscriber that receives data about the status of the fridge
-from the control strategies. It communicates with the Temperature Alarm Web Service using REST
-Web Services, indicating whether the temperature value is above the threshold. With the same kind
-of communication, it also allows the user to visualize the current status of the fridge on the available
-interfaces, in this case a Telegram Bot.
-"""
-import socket
-import time
-import json
-import requests
-import cherrypy
-import paho.mqtt.client as PahoMQTT
+#from DeviceConnector import *
 from FridgeStatusControl import *
+import cherrypy
+import json
+import socket
+import paho.mqtt.client as PahoMQTT
 import threading
+import requests
+import time
+import sys
+import numpy as np
 
-class Fridge_GET():																	
+class FridgeREST():																	
 
 	exposed = True
 
@@ -34,134 +30,154 @@ class Fridge_GET():
 			raise cherrypy.HTTPError(400, "Your GET request has URI not correct")
 
 
-class Fridge_MQTT():
+class FridgeStatusMQTT:
 
-	def __init__(self, user_ID, fridge_ID, broker_ip, broker_port, control):
+    def __init__(self, client_ID, user_ID, fridge_ID, broker_ip, broker_port, control):
 
-		self.user_ID = user_ID
-		self.fridge_ID = fridge_ID
-		self.broker = broker_ip
-		self.port = broker_port
-		self.control = control
+        self.client_ID = client_ID
+        self.user_ID = user_ID
+        self.fridge_ID = fridge_ID
+        self.broker = broker_ip
+        self.port = broker_port
+        self.control = control
 
-		# create an instance of paho.mqtt.client
-		self._paho_mqtt = PahoMQTT.Client(self.user_ID)
+        # create an instance of paho.mqtt.client
+        self._paho_mqtt = PahoMQTT.Client(self.client_ID)
 
-		# register the callback
-		self._paho_mqtt.on_connect = self.myOnConnect
-		self._paho_mqtt.on_message = self.myOnMessage
+        # register the callback
+        self._paho_mqtt.on_connect = self.myOnConnect
+        self._paho_mqtt.on_message = self.myOnMessage
 
-	def myOnConnect(self, paho_mqtt, userdata, flags, rc):
-		print ("Connected to %s with result code: %d" % (self.broker, rc))
+    def myOnConnect(self, paho_mqtt, userdata, flags, rc):
+        print ("Connected to broker: " + str(self.broker) +
+               ", with result code: " + str(rc))
 
-	#Receive the message from the topic 
-	def myOnMessage(self, paho_mqtt, userdata, msg):
-		# A new message is received
-		message = msg.payload.decode("utf-8")
-		msg = json.loads(message)
-		#print ("Message received:", msg['v'])
+    def myOnMessage(self, paho_mqtt, userdata, msg):
+        # A new message is received
+        #self.notifier.notify (msg.topic, msg.payload)
+        print("Message received: " + str(msg.payload))
+        print("On topic: ", str(msg.topic))
+        message = msg.payload.decode("utf-8")
+        msg = json.loads(message)
 
-		#when a message is received, the control status is updated
-		control_status = self.control.update_status(self.user_ID, self.fridge_ID, msg['v'])	
-		print (control_status)			
+        control_status = self.control.update_status(self.user_ID, self.fridge_ID, msg['v'])
+        print (control_status)			
 
-	def start(self):
+    def myPublish(self, topic, msg):
+        # if needed, you can do some computation or error-check before publishing
+        print ("Publishing message: " + str(msg))
+        print("with topic: " + str(topic))
+        # publish a message with a certain topic
+        self._paho_mqtt.publish(topic, msg, 2)
 
-		self._paho_mqtt.connect(self.broker, self.port)
-		self._paho_mqtt.loop_start()
-	
+    def mySubscribe(self, topic):
+        # if needed, you can do some computation or error-check before subscribing
+        print ("Subscribing to topic: " + str(topic))
+        # subscribe for a topic
+        self._paho_mqtt.subscribe(topic, 2)
 
-	def stop(self):
+        # just to remember that it works also as a subscriber
+        self._isSubscriber = True
+        self._topic = topic
 
-		self._paho_mqtt.loop_stop()
-		self._paho_mqtt.disconnect()
+    def start(self):
+        # manage connection to broker
+        self._paho_mqtt.connect(self.broker, self.port)
+        self._paho_mqtt.loop_start()
 
-	def mySubscribe(self, topic):
-		print ("subscribing to %s" % (topic)) # subscribe for a topic
-		self._paho_mqtt.subscribe(topic, 2)
+    def stop(self):
+        if (self._isSubscriber):
+            # remember to unsuscribe if it is working also as subscriber
+            self._paho_mqtt.unsubscribe(self._topic)
 
-	def myPublish(self, topic, message):
-		print ("Publishing on ", topic, "with message ", message)
-		self._paho_mqtt.publish(topic, message, 2)
-
-
-class FridgeThread(threading.Thread):
-        
-        def __init__(self, MQTT_Fridge, userID, fridgeID, catalog_URL, control):
-            threading.Thread.__init__(self)
-            self.MQTT_Fridge = MQTT_Fridge
-            self.user_ID = userID
-            self.fridge_ID = fridgeID
-            self.catalog_url = catalog_URL
-            self.control = control
-        
-        def run(self):
-            while True:
-                
-                topic = "/MyGreenFridge/"+ str(self.user_ID) + '/' + self.fridge_ID + "/Tcontrol"
-                MQTT_Fridge.mySubscribe(topic)
-
-                with open('prova_2.txt', 'r') as myfile:
-                	data = myfile.read()
-                MQTT_Fridge.myPublish(topic, data)
-
-                time.sleep(5)
+        self._paho_mqtt.loop_stop()
+        self._paho_mqtt.disconnect()
 
 
-if __name__ == '__main__':														
+class FridgeStatusThread(threading.Thread):
 
-	#Open file of configuration, including the data of the catalog
-	file = open("Configuration.txt","r")
-	info = json.loads(file.read())
+    def __init__(self, FridgeStatus_MQTT, userID, fridgeID, catalog_URL, control):
+        threading.Thread.__init__(self)
+        self.FridgeStatus_MQTT = FridgeStatus_MQTT
+        self.user_ID = userID
+        self.fridge_ID = fridgeID
+        self.catalog_url = catalog_URL
+        self.control = control
 
-	catalog_IP = info["catalog_IP"]
-	catalog_Port = info["catalog_port"]
+    def run(self):
+        while True:
 
-	file.close()
-	catalog_URL = "http://" + catalog_IP + catalog_Port
-	try:
-		r = requests.get(catalog_URL + "broker")
-		broker = r.json()
-		broker_IP = broker["broker_IP"]
-		broker_port = broker["broker_port"]
-	except requests.HTTPError as err:
-		print ("Error retrieving the broker")
-		sys.exit()
+            topic = "/MyGreenFridge/" + \
+                str(self.user_ID) + '/' + self.fridge_ID + "/Tcontrol"
+            self.FridgeStatus_MQTT.mySubscribe(topic)
 
-	r2 = requests.get(catalog_URL + "fridges")
-	fridges = r2.json()
-
-	s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-	s.connect(("8.8.8.8", 80))
-	ip = s.getsockname()[0]
-	port = "8787"
-
-	web_service = json.dumps({"name":"FridgeStatusWS", "IP":ip, "port":port})
-	r3 = requests.post(catalog_URL + "add_WS", web_service)
+            time.sleep(15)
 
 
-	#It iterates on all the available fridges in the system
-	for fridge in fridges["fridges"]:
-		user_ID =  fridge["user"]
-		fridge_ID = fridge["ID"]
-		status_init = 3
-		status_curr = status_init #both are inizialized with a default value equal to 3
+if __name__ == '__main__':
 
-		FridgeController = FridgeStatusControl(status_init, status_curr)
+    # standard configuration to serve the url "localhost:8080"
+    conf = {
+        '/': {
+            'request.dispatch': cherrypy.dispatch.MethodDispatcher(),
+            'tools.sessions.on': True
+        }
+    }
 
-		MQTT_Fridge = Fridge_MQTT(user_ID, fridge_ID, broker_IP, broker_port, FridgeController)
-		MQTT_Fridge.start()
+    # get IP address of the RPI
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(("8.8.8.8", 80))
+    IP = s.getsockname()[0]
+    Port = 8585
 
-		Fridge_Thread = FridgeThread(MQTT_Fridge, user_ID, fridge_ID, catalog_URL, FridgeController)
-		Fridge_Thread.start()
+    file = open("Configuration.txt", "r")
+    info = json.loads(file.read())
+
+    catalog_IP = info["catalog_IP"]
+    file = open("Configuration.txt", "r")
+    info = json.loads(file.read())
+
+    catalog_IP = info["catalog_IP"]
+    catalog_Port = info["catalog_port"]
+    file.close()
+    catalog_URL = "http://" + catalog_IP + catalog_Port
+
+    web_service = json.dumps({"name":"FridgeStatusWS", "IP":IP, "port":Port})
+    r3 = requests.post(catalog_URL + "add_WS", web_service)
+
+    try:
+        r = requests.get(catalog_URL + "broker")
+        broker = r.json()
+        broker_IP = broker["broker_IP"]
+        broker_Port = broker["broker_port"]
+    except requests.RequestException as err:
+        sys.exit("ERROR: cannot retrieve the Broker IP from the Catalog.")
+
+    r2 = requests.get(catalog_URL + "fridges")
+    fridges = r2.json()
 
 
-		conf = {'/':{'request.dispatch': cherrypy.dispatch.MethodDispatcher(),
-			'tools.sessions.on': True}}
+    # It iterates on all the available fridges in the system
+    i=0
+    for fridge in fridges["fridges"]:
+	    user_ID = fridge['user']
+	    fridge_ID = fridge['ID']
+	    client_ID = "fridgestatusclient_" + str(i)
+	    i=i+1
+	    
 
-		cherrypy.tree.mount(Fridge_GET(FridgeController), '/', conf)
-		cherrypy.config.update({'server.socket_host': '0.0.0.0'})
-		cherrypy.config.update({'server.socket_port': 8787})
-		cherrypy.engine.start()
-		cherrypy.engine.block()
+	    FridgeStatus_Controller = FridgeStatusControl(3, 3)
 
+	    FridgeStatus_MQTT = FridgeStatusMQTT(
+	        client_ID, user_ID, fridge_ID, broker_IP, broker_Port, FridgeStatus_Controller)
+
+	    FridgeStatus_MQTT.start()
+
+	    FridgeStatus_Thread = FridgeStatusThread(FridgeStatus_MQTT, user_ID, fridge_ID, catalog_URL, FridgeStatus_Controller)
+	    FridgeStatus_Thread.start()
+
+    cherrypy.tree.mount(FridgeREST(FridgeStatus_Controller), '/', conf)
+    cherrypy.config.update({'server.socket_host': '0.0.0.0'})
+    cherrypy.config.update({'server.socket_port': Port})
+    cherrypy.engine.start()
+    cherrypy.engine.block()

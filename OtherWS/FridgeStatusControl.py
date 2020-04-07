@@ -14,7 +14,7 @@ class FridgeStatusControl:
 				return self.list_status
 		
 		self.list_status.append({"user_ID":user_ID, "fridge_ID":fridge_ID, "current_status":current_status})
-		print (self.list_status)
+		#print (self.list_status)
 		return self.list_status
 
 
