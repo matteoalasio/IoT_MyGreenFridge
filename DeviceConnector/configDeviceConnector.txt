@@ -1,1 +1,1 @@
-{"catalogIP":"localhost", "catalogPort": "8080", "userID": "1234", "fridgeID": "5678", "temperatureID": "12", "humidityID": "12", "camera0ID": "34", "camera1ID": "56"}
+{"catalogIP":"localhost", "catalogPort": "8080", "userID": "1234", "fridgeID": "5678", "temperatureID": "temperature", "humidityID": "humidity", "camera0ID": "camera0", "camera1ID": "camera1"}
