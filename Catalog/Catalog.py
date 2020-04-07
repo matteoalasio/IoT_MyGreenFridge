@@ -172,7 +172,18 @@ class Catalog(object):
 		dict = json.loads(json_file)
 		file.close()
 
-		dict['fridges'].append({'ID': added_fridge['ID'],'user': None,
+		flag = 0
+		for fridge in dict['fridges']:
+			if fridge['ID']==added_fridge['ID']:
+				flag = 1
+				fridge['insert-timestamp'] = time.time()
+				file = open(self.filename, 'w')
+				file.write(json.dumps(dict))
+				file.close()
+				return "Fridge already present. Time has been updated."
+
+		if flag==0:
+			dict['fridges'].append({'ID': added_fridge['ID'],'user': None,
                                 'sensors': added_fridge['sensors'],
                                 'products': added_fridge['products'],
                                 'wasted': [],
