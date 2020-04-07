@@ -113,13 +113,14 @@ if __name__ == '__main__':
     s.connect(("8.8.8.8", 80))
     ip = s.getsockname()[0] # "192.168.1.128"
     
+    devPort = 8082
     userID = "1234"
     fridgeID = "5678"
     temperatureID = "12"
     humidityID = "12"
     camera0ID = "34"
     camera1ID = "56"
-    dev = DeviceConnector(ip, userID, fridgeID, temperatureID, humidityID, camera0ID, camera1ID)
+    dev = DeviceConnector(ip, devPort, userID, fridgeID, temperatureID, humidityID, camera0ID, camera1ID)
     dev.get_temperature()
     dev.get_humidity()
     dev.get_camera0()
