@@ -143,7 +143,6 @@ class ThingSpeakDataManager :
     
 if __name__ == "__main__":
 
-    # ???
     conf = {
         '/': {
             'request.dispatch': cherrypy.dispatch.MethodDispatcher(),
@@ -220,3 +219,12 @@ if __name__ == "__main__":
 ### DA CHIEDERE MARTEDì:
 
 # Perché io nel config non dovrei avere il frigdeID?
+
+# Il device connector è il modo di registrarsi al sistema. Il thingspeak adaptor... invece...........
+# deve fare il servizio che svolge per tutti gli utenti del sistema. Il device connector è associato ad una
+# raspberry, quindi è posseduto da una persona. 
+
+# dovrei fare get users dal catalog, e fare un for per tutti gli user, forse?
+# DEVO METTERE ANCHE L'API NELLA CONFIGURAZIONE --> mettere un dizionario che associa
+# un API a ogni frigorifero.
+# fridges = { "ID": #API; }
