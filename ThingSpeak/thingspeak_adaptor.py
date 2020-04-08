@@ -36,7 +36,7 @@ richiesta = requests.get(url_richiesta)
 ## ---> subscriber class, to manage the messages in MQTT
 class ThingSpeakDataManager :
 
-    def __init__(self, userID, fridgeID, broker, port):
+    def __init__(self, userID, broker, port, fridges):
         """ 
         This is the constructor function of the class. 
         -----
@@ -48,7 +48,6 @@ class ThingSpeakDataManager :
 
         """
         self.userID = userID
-        self.fridgeID = fridgeID
         self.broker = broker
         self.port = port
         self.topic = "" 
@@ -56,6 +55,7 @@ class ThingSpeakDataManager :
         self._paho_mqtt = PahoMQTT.Client(userID, False)
         self._paho_mqtt.on_connect = self.myOnConnect
         self._paho_mqtt.on_message = self.myOnMessageReceived
+        self.fridges = fridges
 
     def mySubscribe (self, topic):
         """
@@ -68,7 +68,7 @@ class ThingSpeakDataManager :
         self._paho_mqtt.subscribe(topic, 2)
         self._topic = topic
     
-    def myOnConnect (self, paho_mqtt, userdata, flags, rc):
+    def myOnConnect (self, paho_mqtt, userdata):
         """
         This manages the opening of a connection.
         -----
@@ -98,31 +98,25 @@ class ThingSpeakDataManager :
         # capire bene cosa fare di TControl e di HControl
         # I am assuming the topic is correct. Maybe I should check this somewhere.
 
-        msg_dict = json.loads(msg.payload.decode('string-escape').strip('"'))
-        value = ((msg_dict["e"])[0])["v"]
+        for f in self.fridges:
+            fridgeID = f["fridgeID"]
+            fridgeAPI = f["API"]
 
-        if (msg.topic == '/MyGreenFridge/'+ self.userID + "/" + self.fridgeID + "/temperature"):
-            # This is all temporary. I don't know what to put in these links
-            # CANALI DIVERSI CON UN SOLO FIELD? O STESSO CANALE E VARI FIELD?
-            data = urllib.urlopen("https://api.thingspeak.com/update?api_key=PM5FIRRRHSDYV80C&field1="+str(value))
-            print ("Temperature value updated")
-            # Where do I take the value? 
-            print value
+            msg_dict = json.loads(msg.payload.decode('string-escape').strip('"'))
+            value = ((msg_dict["e"])[0])["v"]
 
-            elif (msg.topic == '/MyGreenFridge/'+ self.userID + "/" + self.fridgeID +"/humidity") :
-                data = urllib.urlopen("https://api.thingspeak.com/update?api_key=PM5FIRRRHSDYV80C&field2="+str(value))
-                print ("Humidity value updated")
+            if (msg.topic == '/MyGreenFridge/'+ self.userID + "/" + fridgeID + "/temperature"):
+                # This is all temporary. I don't know what to put in these links
+                # CANALI DIVERSI CON UN SOLO FIELD? O STESSO CANALE E VARI FIELD?
+                data = urllib.urlopen("https://api.thingspeak.com/update?api_key="+fridgeAPI+"&field1="+str(value))
+                print ("Temperature value updated on ThingSpeak")
+                # Where do I take the value? 
                 print value
 
-            elif (msg.topic =='/MyGreenFridge/'+ self.userID + "/" + self.fridgeID +"/wasted_products") :
-                data = urllib.urlopen("https://api.thingspeak.com/update?api_key=PM5FIRRRHSDYV80C&field3="+str(value))
-                print ("Input EAN code updated")
-                print value
-
-            #elif (msg.topic == '/MyGreenFridge/'+ self.userID +"/Tcontrol"):
-                #msg_dict = json.loads (msg.payload)
-                #value = int(msg_dict["v"])
-                #self.pCalc.energyHeatCalc(value)
+                elif (msg.topic == '/MyGreenFridge/'+ self.userID + "/" + self.fridgeID +"/humidity") :
+                    data = urllib.urlopen("https://api.thingspeak.com/update?api_key="+fridgeAPI+"&field2="+str(value))
+                    print ("Humidity value updated on ThingSpeak")
+                    print value
 
     def start(self):
 		"""
@@ -165,10 +159,11 @@ if __name__ == "__main__":
     except OSError:
         sys.exit("ERROR: cannot open the configuration file.")
 
-    userID = configDict['userID'] 
+    userID = configDict['userID']
+    fridges = []
+    fridges = configDict['fridges']
     catalogIP = configDict['catalogIP']
     catalogPort = configDict['catalogPort']
-    fridgeID = configDict["fridgeID"] # Do I have it? Or should I ask for the conversion to the catalog?
 
     print("Catalog IP is: " + catalogIP)
     print("Catalog port is " + catalogPort)
@@ -184,15 +179,21 @@ if __name__ == "__main__":
         #sys.exit("ERROR: cannot retrieve the Broker IP from the Catalog.")
         pass
     
-    # Taking the wasted products here
-    try:
-        r2 = requests.get(catalogURL+ "/wasted")
-        wasted_json = r2.json()
-    except requests.RequestException as err:
-        #did not find the list of wasted products
-        pass
+    for f in fridges:
+        fridgeID = f["fridgeID"]
+        fridgeAPI = f["API"]
+        catalogURL = catalogURL+"?Fridge_ID="+fridgeID
+        # Taking the wasted products here
+        try:
+            r2 = requests.get(catalogURL+ "/wasted")
+            wasted_json = r2.json()
+            data = urllib.urlopen("https://api.thingspeak.com/update?api_key="+fridgeAPI+"&field3="+str(value))
+            print ("Wasted products updated on ThingSpeak")
+        except requests.RequestException as err:
+            #did not find the list of wasted products
+            pass
 
-    tsdm = ThingSpeakDataManager(deviceID, brokerip, brokerport)
+    tsdm = ThingSpeakDataManager(deviceID, brokerip, brokerport, fridges)
 
     tsdm.start()
     time.sleep(2) # do I need this? Probably I will understand only when I run it...
@@ -215,16 +216,3 @@ if __name__ == "__main__":
 
 # se voglio testare solo thingspeak e non anche il mqtt posso passare dei valori a caso nel main. Magari devo cambiare
 # un po' il modo in cui ho impostato le clasi in questo programma. Vedere il main del temperatureWS. 
-
-### DA CHIEDERE MARTEDì:
-
-# Perché io nel config non dovrei avere il frigdeID?
-
-# Il device connector è il modo di registrarsi al sistema. Il thingspeak adaptor... invece...........
-# deve fare il servizio che svolge per tutti gli utenti del sistema. Il device connector è associato ad una
-# raspberry, quindi è posseduto da una persona. 
-
-# dovrei fare get users dal catalog, e fare un for per tutti gli user, forse?
-# DEVO METTERE ANCHE L'API NELLA CONFIGURAZIONE --> mettere un dizionario che associa
-# un API a ogni frigorifero.
-# fridges = { "ID": #API; }
