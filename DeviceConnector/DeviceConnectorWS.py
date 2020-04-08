@@ -76,7 +76,7 @@ class DeviceConnectorREST(object):
             if camera1 == "Reading error":
                 raise cherrypy.HTTPError(500, "Error in reading data from camera1")
             else:
-                # if the image from camera0 has been read correctly, convert senml into json
+                # if the image from camera1 has been read correctly, convert senml into json
                 outputJson = json.dumps(senml)
         else:
             raise cherrypy.HTTPError(404, "Error: uri[0] must be 'temperature', 'humidity', 'camera0' or 'camera1'")
@@ -301,10 +301,10 @@ if __name__ == '__main__':
     devPort = 8082
     
     # PROVA --> poi sistemiamo da dove vengono questi parametri
-    userID = "pippo"
-    clientID = "ciccio"
-    brokerIP = "localhost"
-    brokerPort = 1883
+    #userID = "pippo"
+    #clientID = "ciccio"
+    #brokerIP = "localhost"
+    #brokerPort = 1883
     
     # read configuration file
     try:
@@ -335,14 +335,14 @@ if __name__ == '__main__':
         brokerIP = broker["broker_IP"]
         brokerPort = broker["broker_port"]
     except requests.RequestException as err:
-        #sys.exit("ERROR: cannot retrieve the Broker IP from the Catalog.")
+        sys.exit("ERROR: cannot retrieve the Broker IP from the Catalog.")
         pass
     
     
     # instantiate a DeviceConnector object
     deviceConnector = DeviceConnector(devIP, devPort, userID, fridgeID, temperatureID, humidityID, camera0ID, camera1ID)
     
-    deviceConnectorMQTT = DeviceConnectorMQTT(clientID, brokerIP, brokerPort, deviceConnector)
+    deviceConnectorMQTT = DeviceConnectorMQTT(userID, brokerIP, brokerPort, deviceConnector)
     deviceConnectorMQTT.start()
     
     tempThread = TemperatureThread(deviceConnector, deviceConnectorMQTT)
