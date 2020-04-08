@@ -8,7 +8,7 @@ import threading
 import sys
 
 #- MQTT_subscriber:		- /MyGreenFridge/ + user_ID + fridge_ID + /temperature
-#- MQTT_publisher:		- /GreenFridge/ + user_ID + fridge_ID + /Tcontrol 
+#- MQTT_publisher:		- /GreenFridge/ + user_ID + fridge_ID + /Tcontrol
 					#publish 0 when the temperature is in the correct range
 					#publish +1 when the temperature is higher than the permitted value
 					#publish -1 when the temperature is lower than the permitted value
@@ -34,21 +34,23 @@ class Temp_MQTT():
 	def myOnConnect(self, paho_mqtt, userdata, flags, rc):
 		print ("Connected to %s with result code: %d" % (self.broker, rc))
 
-	#Receive the message from the topic 
+	#Receive the message from the topic
 	def myOnMessage(self, paho_mqtt, userdata, msg):
 		# A new message is received
 		message = json.loads(msg.payload.decode("utf-8"))
-	
-		#temperature_read = msg.payload.decode("utf-8")
+
 		temperature_read = int(((message["e"])[0])["v"])
 		print ("Current temperature:", temperature_read)
 
+		update_temperature = self.control.update_temperature(temperature_read)
 
-	def start(self, topic):
+
+
+	def start(self):
 
 		self._paho_mqtt.connect(self.broker, self.port)
 		self._paho_mqtt.loop_start()
-	
+
 
 	def stop(self):
 
@@ -66,7 +68,7 @@ class Temp_MQTT():
 
 
 class TemperatureThread(threading.Thread):
-        
+
         def __init__(self, MQTT_temperature, userID, fridgeID, sensor, catalog_URL, control):
             threading.Thread.__init__(self)
             self.MQTT_temperature = MQTT_temperature
@@ -75,43 +77,38 @@ class TemperatureThread(threading.Thread):
             self.sensor_ID = sensor
             self.catalog_url = catalog_URL
             self.control = control
-        
+
         def run(self):
             while True:
-                
+
                 topic = "MyGreenFridge/"+str(self.user_ID) + '/' + self.fridge_ID + "/temperature"
                 MQTT_temperature.mySubscribe(topic)
-               	#File di prova per fare da publisher
-               	#with open('prova.txt', 'r') as myfile:
-                #	data = myfile.read()
-                #MQTT_temperature.myPublish(topic, data)
 
                 temp_curr = self.control.get_temperature()
+
                 #Control the temperature
                 control_status = self.control.temp_check(temp_curr)
                 topic_pub = "/MyGreenFridge/" + str(self.user_ID) + '/' + str(self.fridge_ID) + "/Tcontrol"
 
                 if control_status != None:
-
 					#the temperature at this point can be higher or lower wrt the limits
                 	pub_mess = json.dumps({"v":control_status})
-
 					#{"v":1} if higher, {"v":-1} if lower
                 	MQTT_temperature.myPublish(topic_pub, pub_mess)
-                else:
 
+                else:
                 	print ("Temperature is ok")
                 	pub_mess = json.dumps({"v":0})
                 	MQTT_temperature.myPublish(topic_pub, pub_mess)
-							
 
-                #Only when the temperature value is different from the previous one, we change it in the json file
+
+                #Only when the temperature value is different from the previous one, we change it in the CATALOG file
                 if (temp_curr != self.control.get_init_temperature()):
                 	print("Changing the temperature!")
-                	temp_init = self.control.update_init_temperature(temp_curr)
-               		url = self.catalog_url + "update_sensor?Fridge_ID=" + self.fridge_ID
 
-                	#print ("Current Temperature :", temperature_curr)
+                	temp_init = self.control.update_init_temperature(temp_curr)
+
+               		url = self.catalog_url + "update_sensor?Fridge_ID=" + self.fridge_ID
                 	sensor_to_add = {"sensor_ID": self.sensor_ID, "Value": temp_curr}
 
                 #Posting on CATALOG the current value of the sensor
@@ -126,7 +123,7 @@ class TemperatureThread(threading.Thread):
                 time.sleep(15)
 
 
-if __name__ == '__main__':														
+if __name__ == '__main__':
 
 	#Open file of configuration, including the data of the catalog
 	file = open("Configuration.txt","r")
@@ -150,7 +147,8 @@ if __name__ == '__main__':
 	r2 = requests.get(catalog_URL + "fridges")
 	fridges = r2.json()
 	i=0
-	#It iterates on all the available fridges in the system
+
+	#Iterating on all the available fridges in the system
 	for fridge in fridges["fridges"]:
 		user_ID =  fridge["user"]
 		fridge_ID = fridge["ID"]
@@ -166,15 +164,10 @@ if __name__ == '__main__':
 		temp_curr = temp_init
 
 		TemperatureController = TemperatureControl(temp_init, temp_curr)
-		
+
 		MQTT_temperature = Temp_MQTT(client_ID, user_ID, fridge_ID, broker_IP, broker_port, TemperatureController)
-	
-		MQTT_temperature.start("/MyGreenFridge/" + str(user_ID) + '/' + str(fridge_ID) + "/temperature")
-		#MQTT_temperature.mySubscribe("/MyGreenFridge/110995/temperature")
+		MQTT_temperature.start()
 
 		Temperature_Thread = TemperatureThread(MQTT_temperature, user_ID, fridge_ID, "temperature", catalog_URL, TemperatureController)
-		#REST_temperature = Temp_REST(fridge_ID, "Temperature", catalog_URL, TemperatureController_init)
-		#REST_temperature.run()
-
 		Temperature_Thread.start()
-		#Temperature_Thread.run()
+
