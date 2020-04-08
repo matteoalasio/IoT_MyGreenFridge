@@ -1,4 +1,4 @@
-#from DeviceConnector import *
+# from DeviceConnector import *
 from FridgeStatusControl import *
 import cherrypy
 import json
@@ -10,24 +10,25 @@ import time
 import sys
 import numpy as np
 
-class FridgeREST():																	
 
-	exposed = True
+class FridgeREST():
 
-	def __init__(self, controller):
-		self.controller = controller
+    exposed = True
 
-	def GET(self, *uri, **params):
+    def __init__(self, controller):
+        self.controller = controller
 
-		#/status?User_ID=<IDUser>&Fridge_ID=<IDFridge>
-		if (uri[0] == "status"):
-			user_ID = params['User_ID']
-			fridge_ID = params['Fridge_ID']
-			info = json.dumps({"Current status":self.controller.get_status_fridge(user_ID,fridge_ID)})
-			return info
+    def GET(self, *uri, **params):
 
-		else:
-			raise cherrypy.HTTPError(400, "Your GET request has URI not correct")
+        #/status?User_ID=<IDUser>&Fridge_ID=<IDFridge>
+        if (uri[0] == "status"):
+            user_ID = params['User_ID']
+            fridge_ID = params['Fridge_ID']
+            info = json.dumps({"Current status": self.controller.get_status_fridge(user_ID, fridge_ID)})
+            return info
+
+        else:
+            raise cherrypy.HTTPError(400, "Your GET request has URI not correct")
 
 
 class FridgeStatusMQTT:
@@ -54,14 +55,15 @@ class FridgeStatusMQTT:
 
     def myOnMessage(self, paho_mqtt, userdata, msg):
         # A new message is received
-        #self.notifier.notify (msg.topic, msg.payload)
+        # self.notifier.notify (msg.topic, msg.payload)
         print("Message received: " + str(msg.payload))
         print("On topic: ", str(msg.topic))
         message = msg.payload.decode("utf-8")
         msg = json.loads(message)
 
-        control_status = self.control.update_status(self.user_ID, self.fridge_ID, msg['v'])
-        print (control_status)			
+        control_status = self.control.update_status(
+            self.user_ID, self.fridge_ID, msg['v'])
+
 
     def myPublish(self, topic, msg):
         # if needed, you can do some computation or error-check before publishing
@@ -142,7 +144,8 @@ if __name__ == '__main__':
     file.close()
     catalog_URL = "http://" + catalog_IP + catalog_Port
 
-    web_service = json.dumps({"name":"FridgeStatusWS", "IP":IP, "port":Port})
+    web_service = json.dumps(
+        {"name": "FridgeStatusWS", "IP": IP, "port": Port})
     r3 = requests.post(catalog_URL + "add_WS", web_service)
 
     try:
@@ -156,28 +159,26 @@ if __name__ == '__main__':
     r2 = requests.get(catalog_URL + "fridges")
     fridges = r2.json()
 
+    FridgeStatus_Controller = FridgeStatusControl(3, 3)
 
     # It iterates on all the available fridges in the system
-    i=0
+    i = 0
     for fridge in fridges["fridges"]:
-	    user_ID = fridge['user']
-	    fridge_ID = fridge['ID']
-	    client_ID = "fridgestatusclient_" + str(i)
-	    i=i+1
-	    
+        user_ID = fridge['user']
+        fridge_ID = fridge['ID']
+        client_ID = "fridgestatusclient_" + str(i)
+        i = i + 1
 
-	    FridgeStatus_Controller = FridgeStatusControl(3, 3)
+        FridgeStatus_MQTT = FridgeStatusMQTT(
+            client_ID, user_ID, fridge_ID, broker_IP, broker_Port, FridgeStatus_Controller)
 
-	    FridgeStatus_MQTT = FridgeStatusMQTT(
-	        client_ID, user_ID, fridge_ID, broker_IP, broker_Port, FridgeStatus_Controller)
+        FridgeStatus_MQTT.start()
 
-	    FridgeStatus_MQTT.start()
+        FridgeStatus_Thread = FridgeStatusThread(FridgeStatus_MQTT, user_ID, fridge_ID, catalog_URL, FridgeStatus_Controller)
+        FridgeStatus_Thread.start()
 
-	    FridgeStatus_Thread = FridgeStatusThread(FridgeStatus_MQTT, user_ID, fridge_ID, catalog_URL, FridgeStatus_Controller)
-	    FridgeStatus_Thread.start()
-
-    cherrypy.tree.mount(FridgeREST(FridgeStatus_Controller), '/', conf)
-    cherrypy.config.update({'server.socket_host': '0.0.0.0'})
-    cherrypy.config.update({'server.socket_port': Port})
-    cherrypy.engine.start()
+        cherrypy.tree.mount(FridgeREST(FridgeStatus_Controller), '/', conf)
+        cherrypy.config.update({'server.socket_host': '0.0.0.0'})
+        cherrypy.config.update({'server.socket_port': Port})
+        cherrypy.engine.start()
     cherrypy.engine.block()

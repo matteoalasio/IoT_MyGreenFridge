@@ -32,8 +32,10 @@ class TemperatureAlarmThread(threading.Thread):
                 
                 print (self.user_ID, self.fridge_ID)
                 #Make the request to obtain the value of the current status
-                r4 = requests.get(url_WS + "status?User_ID="+ str(self.user_ID) + "&Fridge_ID=" + str(self.fridge_ID))
+                url = "status?User_ID="+ str(self.user_ID) + "&Fridge_ID=" + str(self.fridge_ID)
+                r4 = requests.get(url_WS + url)
                 res = r4.json()
+                print (res)
 
                 #Check the status of the fridge
                 if (res['Current status']==1 or res['Current status']== -1):
@@ -61,7 +63,6 @@ if __name__ == '__main__':
 
     r = requests.get(catalog_URL + "user_fridge?User_ID="+ str(user_ID))
     fridge_ID = r.json()
-    print (fridge_ID)
 
     #Register the WS in the CATALOG
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
