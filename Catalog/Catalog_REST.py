@@ -12,12 +12,13 @@ GET:
 - /fridges/ : Provide information about all the available fridges
 - /fridge?ID=<id> : Provide information about a fridge with a specific fridge_ID
 - /products?Fridge_ID=<IDFridge> : Provide information about the available products in a fridge
-- /web_service?Name=<NameWS> : Provide the IP of a specified WS
+- /web_service?Name=<NameWS> : Provide the IP and the port of a specified WS
 - /wasted?Fridge_ID=<IDFridge> : Provide information about the wasted products of a fridge
-- /expiration_date?Fridge_ID=<IDFridge>&Product_ID=<IDProduct> : Provide information about the expiration date 
+- /expiration_date?Fridge_ID=<IDFridge>&Product_ID=<IDProduct> : Provide information about the expiration date
                                                                 of a specified product
 - /association?Fridge_ID=<IDFridge>&User_ID=<IDUser> : Association between a user and a fridge
 - /user_fridge?User_ID=<IDUser> : Given a user, it returns his fridge
+- /alarm_status?Fridge_ID=<IDFridge>&Alarm=<Status> :  Given a fridge, it updates the status of its alarm related to temperature
 """
 
 """
@@ -26,7 +27,7 @@ POST:
     The body required is : {"ID":"", "sensors":[], "products":[], "wasted": [], "insert-timestamp": "", "IP": "", "port": ""}
 - /update_fridge/ : Update a specified fridge
 - /add_user/ : Registration of a new user
-    The body required is {"ID":""}
+    The body required is {"ID":"", "password":""}
 - /update_user/ : Update a specified user adding the nickname
     The body required is {"ID":"", "nickname":"", "ID_bot":""}
 - /add_sensor?Fridge_ID=<IDFridge> : Add a sensor to the correspondant Fridge
@@ -38,16 +39,16 @@ POST:
 - /add_expiration?Fridge_ID=<IDFridge>&Product_ID=<IDProduct> : Add the expiration date of a specified product
     The body required is {"day":"", "month":"", "year":""}
 - /add_wasted?Fridge_ID=<IDFridge> : Add a wasted product to a specified fridge
-    The body required is {"product_ID":""}    
+    The body required is {"product_ID":""}
 - /add_WS :Add a Web Service to the catalog structure
-    #The body required is {"name":"", "IP":"", "port":""}    
+    #The body required is {"name":"", "IP":"", "port":""}
 """
 
 """
 DELETE:
 - /fridge?ID=<id> : Delete a specified fridge
 - /user?ID=<id> : Delete a specified user
-- /sensor/fridge_ID?Sensor_ID=<IDSensor> : Delete a specified sensor. 
+- /sensor/fridge_ID?Sensor_ID=<IDSensor> : Delete a specified sensor.
                                         Replace "fridge_ID" in the uri with the ID of the fridge where the sensor is present
 
 - /product/Fridge_ID?Prod_ID=<IDProd> : Delete a product for a specified fridge.
@@ -64,7 +65,7 @@ class Catalog_REST:
 
 
 ########################################## GET FUNCTION ############################################
-  
+
     def GET(self, *uri, **params):
         if len(uri) == 0:
             raise cherrypy.HTTPError(400)
@@ -174,6 +175,16 @@ class Catalog_REST:
                 raise cherrypy.HTTPError(404, info)
             return info
 
+        # /alarm_status?Fridge_ID=<IDFridge>&Alarm=<Status>
+        # Given a fridge, it updates the status of its alarm related to temperature
+        elif uri[0] == 'alarm_status':
+            fridge_ID = params['Fridge_ID']
+            alarm = params['Alarm']
+            info = self.catalog.update_alarm_status(fridge_ID, alarm)
+            if info == "Fridge not found!":
+                raise cherrypy.HTTPError(404, info)
+            return info
+
 
         else:
             raise cherrypy.HTTPError(
@@ -207,7 +218,7 @@ class Catalog_REST:
 
         #/add_user/
         # Registration of a new user
-        # The body required is {"user_ID":""}
+        # The body required is {"ID":"", "password":""}
         elif uri[0] == 'add_user':
             info_added = self.catalog.add_user(body)
             if info_added == "User already present":
@@ -216,7 +227,7 @@ class Catalog_REST:
 
         #/update_user/
         # Update a specified user adding the nickname
-        # The body required is {"user_ID":"", "nickname":""}
+        # The body required is {"ID":"", "nickname":"", "ID_bot":""}
         elif uri[0] == 'update_user':
             info_updated = self.catalog.update_user(body)
             if info_updated == "User not found!":
