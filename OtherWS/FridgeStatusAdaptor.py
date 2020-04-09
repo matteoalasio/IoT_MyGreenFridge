@@ -132,10 +132,7 @@ if __name__ == '__main__':
     IP = s.getsockname()[0]
     Port = 8585
 
-    file = open("Configuration.txt", "r")
-    info = json.loads(file.read())
 
-    catalog_IP = info["catalog_IP"]
     file = open("Configuration.txt", "r")
     info = json.loads(file.read())
 
