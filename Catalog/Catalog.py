@@ -6,6 +6,7 @@ class Catalog(object):
 
     def __init__(self, filename):
         self.filename = filename
+
     # Inizializziamo il catalog con un file in cui sono raccolte tutte le informazioni
 
     # Return information about broker IP address and port
@@ -123,6 +124,7 @@ class Catalog(object):
                 dict['fridges'].remove(fridge)
 
         file = open(self.filename, 'w')
+        file.write(json.dumps(dict))
         file.close()
         if (flag == 1):
             return "User has been deleted"
@@ -326,7 +328,6 @@ class Catalog(object):
 
         for fridge in dict['fridges']:
             if (fridge['ID'] == fridge_ID):
-                print("Ciao")
                 return fridge['products']
         return "Fridge not found!"
 
@@ -341,7 +342,7 @@ class Catalog(object):
             if fridge['ID'] == fridge_ID:
 
                 fridge['products'].append(
-                    {'product_ID': str(added_product['product_ID']), 'Exp_date': {}})
+                    {'product_ID': str(added_product['product_ID']), 'brand': str(added_product['brand']), 'Exp_date': {}})
 
                 file = open(self.filename, 'w')
                 file.write(json.dumps(dict))
@@ -502,19 +503,18 @@ class Catalog(object):
                         return "Web Service already present"
                     else:
                         WS['port'] = str(added_WS['port'])
-            file = open(self.filename, 'w')
-            file.write(json.dumps(dict))
-            file.close()
-            return "Port number has been updated"
-        else:
-            WS['IP'] = str(added_WS['IP'])
-            file = open(self.filename, 'w')
-            file.write(json.dumps(dict))
-            file.close()
-            return "IP has been updated"
+                        file = open(self.filename, 'w')
+                        file.write(json.dumps(dict))
+                        file.close()
+                        return "Port number has been updated"
+                else:
+                    WS['IP'] = str(added_WS['IP'])
+                    file = open(self.filename, 'w')
+                    file.write(json.dumps(dict))
+                    file.close()
+                    return "IP has been updated"
 
-        dict['web_services'].append({'name': str(added_WS['name']), 'IP': str(
-            added_WS['IP']), 'port': str(added_WS['port'])})
+        dict['web_services'].append({'name': str(added_WS['name']), 'IP': str(added_WS['IP']), 'port': str(added_WS['port'])})
         file = open(self.filename, 'w')
         file.write(json.dumps(dict))
         file.close()
