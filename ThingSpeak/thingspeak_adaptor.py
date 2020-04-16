@@ -1,119 +1,94 @@
-# The purpose of this script is to subscribe to topics,
-# receiving data from the sensors in MQTT and then
-# publishing them on ThingSpeak channels via HTTP request
-
-## ---> check after if all these libraries are needed
-#import thingspeak
 import json
-#import paho.mqtt.client as PahoMQTT
+import paho.mqtt.client as PahoMQTT
 import datetime
 import time
 import requests
 import sys
-import urllib
+import urllib.request
 import cherrypy
+import threading
 
-## ---> subscriber class, to manage the messages in MQTT
-class ThingSpeakDataManager :
+class ThingSpeakDataManager:
 
-    def __init__(self, userID, broker, port, fridges):
-        """
-        This is the constructor function of the class.
-        -----
-        userID : identification of a device to which subscribing
-              string
-        broker : identifying the broker of the communication
+    def __init__(self, client_ID, user_ID, fridge_ID, broker_ip, broker_port):
+        self.user_ID = user_ID
+        self.client_ID = client_ID
+        self.fridge_ID = fridge_ID
+        self.broker = broker_ip
+        self.port = broker_port
 
-        port : identifying the port in which the communication takes place
-
-        """
-        self.userID = userID
-        self.broker = broker
-        self.port = port
-        self.topic = ""
-        self._isSubscriber = False
-        self._paho_mqtt = PahoMQTT.Client(userID, False)
+        self._paho_mqtt = PahoMQTT.Client(self.client_ID)
         self._paho_mqtt.on_connect = self.myOnConnect
         self._paho_mqtt.on_message = self.myOnMessageReceived
-        self.fridges = fridges
 
-    def mySubscribe (self, topic):
-        """
-        This function allows the subscription to a specific topic,
-        passed as parameters. It is a string.
-        """
-        # Maybe implement some error-check before subscribing ?
-        print ("subscribing to %s" % (topic))
-        self._isSubscriber = True
-        self._paho_mqtt.subscribe(topic, 2)
-        self._topic = topic
+        self.value_t = None
+        self.value_h = None
 
-    def myOnConnect (self, paho_mqtt, userdata):
-        """
-        This manages the opening of a connection.
-        -----
-        paho_mqtt : ???????????????
-
-        userdata : ???????????
-
-        flags : ?????????
-
-        rc : result code
-
-        """
-        print ("Connected to %s with result code: %d" % (self.broker, rc))
-
-    def myOnMessageReceived (self, paho_mqtt , userdata, msg):
-        # here I must still understand precisely which topics ThingSpeak wants
-        """
-        This function manages the recption of a message.
-        -----
-        paho_mqtt : ????
-        userdata: ??????
-        msg : message received
-           JSON?
-        """
-        # print ("!")
-
-        # capire bene cosa fare di TControl e di HControl
-        # I am assuming the topic is correct. Maybe I should check this somewhere.
-
-        for f in self.fridges:
-            fridgeID = f["fridgeID"]
-            fridgeAPI = f["API"]
-
-            msg_dict = json.loads(msg.payload.decode('string-escape').strip('"'))
-            value = ((msg_dict["e"])[0])["v"]
-
-            if (msg.topic == '/MyGreenFridge/'+ self.userID + "/" + fridgeID + "/temperature"):
-                # This is all temporary. I don't know what to put in these links
-                # CANALI DIVERSI CON UN SOLO FIELD? O STESSO CANALE E VARI FIELD?
-                data = urllib.urlopen("https://api.thingspeak.com/update?api_key="+fridgeAPI+"&field1="+str(value))
-                print ("Temperature value updated on ThingSpeak")
-                # Where do I take the value?
-                print (value)
-
-            elif(msg.topic == '/MyGreenFridge/'+ self.userID + "/" + self.fridgeID +"/humidity"):
-                data = urllib.urlopen("https://api.thingspeak.com/update?api_key="+fridgeAPI+"&field2="+str(value))
-                print ("Humidity value updated on ThingSpeak")
-                print value
+    def myOnConnect(self, paho_mqtt, userdata, flags, rc):
+        print("Connected to %s with result code: %d" %(self.broker, rc))
 
     def start(self):
-		"""
-        Manages the connection to the broker through a certain port.
-        """
-		self._paho_mqtt.connect(self.broker , self.port)
-		self._paho_mqtt.loop_start()
+        self._paho_mqtt.connect(self.broker, self.port)
+        self._paho_mqtt.loop_start()
+
+    def stop(self):
+        self._paho_mqtt.loop_stop()
+        self._paho_mqtt.disconnect()
+    
+    def mySubscribe(self, topic):
+        #print("Subscribing to %s" %(topic))
+        self._paho_mqtt.subscribe(topic, 2)
+
+    def myOnMessageReceived (self, paho_mqtt, userdata, msg):
+        
+        message = json.loads(msg.payload.decode("utf-8"))
+        print("The message has been received")
+        if (msg.topic == "MyGreenFridge/"+str(self.user_ID)+"/"+str(self.fridge_ID)+"/temperature"):
+            self.value_t = message
+        elif(msg.topic == "MyGreenFridge/"+str(self.user_ID)+"/"+str(self.fridge_ID)+"/humidity"):
+            self.value_h = message
+
+    def start(self):
+
+        self._paho_mqtt.connect(self.broker, self.port)
+        self._paho_mqtt.loop_start()
 
     def stop (self):
-        """
-        Stops the connection to the broker.
-        """
+
         if self._isSubscriber :
             self._paho_mqtt.unsubscribe(self.topic)
 
         self._paho_mqtt.loop_stop()
         self._paho_mqtt.disconnect()
+
+class TSThread(threading.Thread):
+    def __init__(self, tsdm, userID, fridgeID, fridgeAPI, catalog_URL):
+        threading.Thread.__init__(self)
+        self.tsdm = tsdm
+        self.userID = userID
+        self.fridgeID = fridgeID
+        self.fridgeAPI = fridgeAPI
+        self.catalog_url = catalog_URL
+
+    def run(self):
+        while True:
+            topic_t = "MyGreenFridge/"+str(self.userID)+"/"+str(self.fridgeID)+"/temperature"
+            self.tsdm.mySubscribe(topic_t)
+            if (self.tsdm.value_t):
+                data = urllib.request.urlopen("https://api.thingspeak.com/update?api_key="+self.fridgeAPI+"&field1="+str(self.tsdm.value_t))
+                print("Temperature value updated on ThingSpeak")
+                print(self.tsdm.value_t)
+                self.tsdm.value_t = None
+
+            topic_h = "MyGreenFridge/"+str(self.userID)+"/"+str(self.fridgeID)+"/humidity"
+            self.tsdm.mySubscribe(topic_h)
+            if (self.tsdm.value_h):
+                data = urllib.request.urlopen("https://api.thingspeak.com/update?api_key="+self.fridgeAPI+"&field2="+str(self.tsdm.value_h))
+                print("Humidity value updated on ThingSpeak")
+                print(self.tsdm.value_h)
+                self.tsdm.value_h = None
+
+        time.sleep(2)
 
 if __name__ == "__main__":
 
@@ -124,13 +99,6 @@ if __name__ == "__main__":
         }
     }
 
-    # ???
-    # s = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
-    # s.connect(("8.8.8.8", 80))
-    # devIP = s.getsockname()[0]
-    # devPort = 8082
-
-    # read configuration file
     try:
         configFile = open("configThingSpeak.txt", "r")
         configJson = configFile.read()
@@ -164,6 +132,8 @@ if __name__ == "__main__":
     print (fridges)
     n_fridges = len(fridges)
     print ("It contains a number of fridges equal to: " + str(n_fridges))
+
+    i=0
     for f in fridges:
         fridgeID = f["fridgeID"]
         fridgeAPI = f["API"]
@@ -175,16 +145,15 @@ if __name__ == "__main__":
             r2 = requests.get(catalogURL)
             wasted_json = r2.json()
             value = len(wasted_json["Wasted_products"])
-            data = urllib.urlopen("https://api.thingspeak.com/update?api_key="+fridgeAPI+"&field3="+str(value))
+            data = urllib.request.urlopen("https://api.thingspeak.com/update?api_key="+fridgeAPI+"&field3="+str(value))
             print ("Wasted products updated on ThingSpeak")
         except requests.RequestException as err:
             sys.exit("ERROR: did not find the list of wasted products")
 
-    tsdm = ThingSpeakDataManager(deviceID, brokerip, brokerport, fridges)
-
-    tsdm.start()
-    time.sleep(2) # do I need this? Probably I will understand only when I run it...
-    tsdm.mySubscribe('/MyGreenFridge/#')
-
-    while True:
-        time.sleep(1)
+        client_ID = "client_"+str(i)
+        i = i+1
+        
+        tsdm = ThingSpeakDataManager(client_ID, userID, fridgeID, brokerIP, brokerPort)
+        tsdm.start()
+        tsThread = TSThread(tsdm, userID, fridgeID, fridgeAPI, catalogURL)
+        tsThread.start()
