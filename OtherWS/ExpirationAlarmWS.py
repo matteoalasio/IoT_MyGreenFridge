@@ -27,18 +27,14 @@ class ExpirationAlarmThread(threading.Thread):
             r = requests.get(catalog_URL + 'products?Fridge_ID=' + str(self.fridge_ID))
             res = r.json()
 
-            print (time.localtime(None))
             count = 0
             for i in time.localtime(None):
                 if (count == 0):
                     year = i
-                    print (year)
                 elif (count == 1):
                     month = i
-                    print (month)
                 elif (count ==2):
                     day = i
-                    print (day)
                 else:
                     break
                 count=count+1
@@ -58,11 +54,11 @@ class ExpirationAlarmThread(threading.Thread):
                             try:
                                 if difference == 0:
                                     r2 = requests.get('https://api.telegram.org/bot' + self.bot_Token + '/sendMessage?chat_id=' + str(ID_bot) +
-                                              '&text=' + 'Attention! Your ' + str(product['product_ID']) + ' will expire today')
+                                              '&text=' + 'Attention! Your ' + str(product['product_ID']) + ' ' + str(product['brand']) + ' will expire today')
                                     r2.raise_for_status()
                                 else:
                                     r2 = requests.get('https://api.telegram.org/bot' + self.bot_Token + '/sendMessage?chat_id=' + str(ID_bot) +
-                                              '&text=' + 'Attention! Your ' + str(product['product_ID']) + ' will expire in ' + str(difference) + ' days')
+                                              '&text=' + 'Attention! Your ' + str(product['product_ID']) + ' ' + str(product['brand']) + ' will expire in ' + str(difference) + ' days')
                                     r2.raise_for_status()
 
                             except requests.HTTPError as error:
@@ -96,11 +92,17 @@ if __name__ == '__main__':
         {"name": "ExpirationAlarmWS", "IP": ip, "port": port})
     r2 = requests.post(catalog_URL + "add_WS", web_service)
 
-    user_ID = 110995  # CAPIRE DA DOVE ARRIVA QUESTO PARAMETRO! PRESUMO DA TELEGRAM
+    #Get the list of the users
+    r3 = requests.get(catalog_URL + 'users/')
+    users = r3.json()
 
-    r = requests.get(catalog_URL + "user_fridge?User_ID=" + str(user_ID))
-    fridge_ID = r.json()
+    for user in users['users']:
+        user_ID = user['ID']
 
-    ExpAlarm_Thread = ExpirationAlarmThread(bot_Token, user_ID, fridge_ID, catalog_URL)
+        r = requests.get(catalog_URL + "user_fridge?User_ID=" + str(user_ID))
 
-    ExpAlarm_Thread.start()
+        if (r.status_code == 200):
+            fridge_ID = r.json()
+            ExpAlarm_Thread = ExpirationAlarmThread(bot_Token, user_ID, fridge_ID, catalog_URL)
+
+            ExpAlarm_Thread.start()

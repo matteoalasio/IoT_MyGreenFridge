@@ -84,9 +84,11 @@ if __name__ == '__main__':
     catalog_URL = "http://" + catalog_IP + catalog_Port
 
     user_ID = 110995  # CAPIRE DA DOVE ARRIVA QUESTO PARAMETRO! PRESUMO DA TELEGRAM
+    #Get the list of the users
+    r3 = requests.get(catalog_URL + 'users/')
+    users = r3.json()
 
-    r = requests.get(catalog_URL + "user_fridge?User_ID=" + str(user_ID))
-    fridge_ID = r.json()
+
 
     # Register the WS in the CATALOG
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -97,7 +99,14 @@ if __name__ == '__main__':
         {"name": "TemperatureAlarmWS", "IP": ip, "port": port})
     r2 = requests.post(catalog_URL + "add_WS", web_service)
 
-    TempAlarm_Thread = TemperatureAlarmThread(
-        bot_Token, user_ID, fridge_ID, catalog_URL)
+    for user in users['users']:
+        user_ID = user['ID']
+        r = requests.get(catalog_URL + "user_fridge?User_ID=" + str(user_ID))
 
-    TempAlarm_Thread.start()
+        if (r.status_code == 200):
+            fridge_ID = r.json()
+
+            TempAlarm_Thread = TemperatureAlarmThread(
+                bot_Token, user_ID, fridge_ID, catalog_URL)
+
+            TempAlarm_Thread.start()

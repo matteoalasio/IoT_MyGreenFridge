@@ -56,7 +56,7 @@ class FridgeStatusMQTT:
     def myOnMessage(self, paho_mqtt, userdata, msg):
         # A new message is received
         # self.notifier.notify (msg.topic, msg.payload)
-        print("Message received: " + str(msg.payload))
+        print("Message received: " + str(msg.payload.decode("utf-8")))
         print("On topic: ", str(msg.topic))
         message = msg.payload.decode("utf-8")
         msg = json.loads(message)
