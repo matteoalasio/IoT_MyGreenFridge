@@ -72,7 +72,7 @@ If you want to be informed when the temperature becomes out of range, please set
                 		self.bot.sendMessage(chat_id, "You can't be registered with this user. Please try another user_ID or password.")
                 		return
 
-                	r2 = requests.post(URL, data = json.dumps(payload))
+                	r2 = requests.put(URL, data = json.dumps(payload))
                 	r2.raise_for_status()
                 except requests.HTTPError as err:
                     self.bot.sendMessage(chat_id, 'An error happened during registration. Try again.')
@@ -245,11 +245,11 @@ If you want to be informed when the temperature becomes out of range, please set
                 i=1
                 list_products = []
                 for product in products:
+                    print ("Sei qui!")
                     expirationdate = product['Exp_date']
-                    listed_product = str(i) +") " + str(product['product_ID']) + " with expiration date: " + str(expirationdate['day']) + '/' + str(expirationdate['month']) + '/' + str(expirationdate['year']) + " "
+                    listed_product = str(i) +") " + str(product['product_ID']) + " " + str(product['brand']) + " with expiration date: " + str(expirationdate['day']) + '/' + str(expirationdate['month']) + '/' + str(expirationdate['year']) + " "
                     list_products.append(listed_product)
                     i=i+1
-
 
             except:
                 self.bot.sendMessage(chat_id, 'An error happened. Try again.')
