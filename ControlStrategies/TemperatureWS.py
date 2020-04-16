@@ -5,6 +5,7 @@ import cherrypy
 import paho.mqtt.client as PahoMQTT
 from TemperatureControl import *
 import threading
+import socket
 import sys
 
 #- MQTT_subscriber:		- /MyGreenFridge/ + user_ID + fridge_ID + /temperature
@@ -113,7 +114,7 @@ class TemperatureThread(threading.Thread):
 
                 #Posting on CATALOG the current value of the sensor
                 	try:
-                		r = requests.post(url, data = json.dumps(sensor_to_add))
+                		r = requests.put(url, data = json.dumps(sensor_to_add))
                 		r.raise_for_status()
 
                		except requests.HTTPError as err:
@@ -134,6 +135,17 @@ if __name__ == '__main__':
 
 	file.close()
 	catalog_URL = "http://" + catalog_IP + catalog_Port
+
+    # Register the WS in the CATALOG
+	s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+	s.connect(("8.8.8.8", 80))
+	ip = s.getsockname()[0]
+	port = "8587"
+	web_service = json.dumps(
+        {"name": "TemperatureWS", "IP": ip, "port": port})
+	r1 = requests.post(catalog_URL + "add_WS", web_service)
+
+
 	try:
 		r = requests.get(catalog_URL + "broker")
 		broker = r.json()
