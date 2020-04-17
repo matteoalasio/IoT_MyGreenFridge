@@ -31,7 +31,11 @@ class ThingSpeakDataManager:
         self._paho_mqtt.connect(self.broker, self.port)
         self._paho_mqtt.loop_start()
 
-    def stop(self):
+    def stop (self):
+
+        if self._isSubscriber :
+            self._paho_mqtt.unsubscribe(self.topic)
+
         self._paho_mqtt.loop_stop()
         self._paho_mqtt.disconnect()
     
@@ -41,27 +45,29 @@ class ThingSpeakDataManager:
 
     def myOnMessageReceived (self, paho_mqtt, userdata, msg):
         
-        message = json.loads(msg.payload.decode("utf-8"))
-        print("The message has been received")
+        message_received = json.loads(msg.payload.decode("utf-8"))
+        message = int(((message_received["e"])[0])["v"])
+        print("A message has been received.")
         if (msg.topic == "MyGreenFridge/"+str(self.user_ID)+"/"+str(self.fridge_ID)+"/temperature"):
             self.value_t = message
         elif(msg.topic == "MyGreenFridge/"+str(self.user_ID)+"/"+str(self.fridge_ID)+"/humidity"):
             self.value_h = message
 
-    def start(self):
+    #def update_temperature(temperature):
+    #    try:
+    #        print("I AM HERE: 1")
+    #        data = urllib.request.urlopen("https://api.thingspeak.com/update?api_key="+self.fridgeAPI+"&field1="+str(temperature))
+    #        print("Temperature value updated on ThingSpeak: "+str(temperature))
+    #    except:
+    #        print("An exception occurred")
 
-        self._paho_mqtt.connect(self.broker, self.port)
-        self._paho_mqtt.loop_start()
+    #def update_humidity(humidity):
+    #    print("I AM HERE: 2")
+    #    data = urllib.request.urlopen("https://api.thingspeak.com/update?api_key="+self.fridgeAPI+"&field2="+str(humidity))
+    #    print("Humidity value updated on ThingSpeak: "+str(humidity))
+        #self.tsdm.value_h = None
 
-    def stop (self):
-
-        if self._isSubscriber :
-            self._paho_mqtt.unsubscribe(self.topic)
-
-        self._paho_mqtt.loop_stop()
-        self._paho_mqtt.disconnect()
-
-class TSThread(threading.Thread):
+class TemperatureThread(threading.Thread):
     def __init__(self, tsdm, userID, fridgeID, fridgeAPI, catalog_URL):
         threading.Thread.__init__(self)
         self.tsdm = tsdm
@@ -72,23 +78,36 @@ class TSThread(threading.Thread):
 
     def run(self):
         while True:
+
             topic_t = "MyGreenFridge/"+str(self.userID)+"/"+str(self.fridgeID)+"/temperature"
             self.tsdm.mySubscribe(topic_t)
             if (self.tsdm.value_t):
-                data = urllib.request.urlopen("https://api.thingspeak.com/update?api_key="+self.fridgeAPI+"&field1="+str(self.tsdm.value_t))
-                print("Temperature value updated on ThingSpeak")
-                print(self.tsdm.value_t)
+                data_t = urllib.request.urlopen("https://api.thingspeak.com/update?api_key="+self.fridgeAPI+"&field1="+str(self.tsdm.value_t))
+                print("Temperature value updated on ThingSpeak: "+str(self.tsdm.value_t))
                 self.tsdm.value_t = None
 
+            time.sleep(13)
+
+class HumidityThread(threading.Thread):
+    def __init__(self, tsdm, userID, fridgeID, fridgeAPI, catalog_URL):
+        threading.Thread.__init__(self)
+        self.tsdm = tsdm
+        self.userID = userID
+        self.fridgeID = fridgeID
+        self.fridgeAPI = fridgeAPI
+        self.catalog_URL = catalog_URL
+    
+    def run(self):
+        while True:
             topic_h = "MyGreenFridge/"+str(self.userID)+"/"+str(self.fridgeID)+"/humidity"
             self.tsdm.mySubscribe(topic_h)
             if (self.tsdm.value_h):
-                data = urllib.request.urlopen("https://api.thingspeak.com/update?api_key="+self.fridgeAPI+"&field2="+str(self.tsdm.value_h))
-                print("Humidity value updated on ThingSpeak")
-                print(self.tsdm.value_h)
+                data_h = urllib.request.urlopen("https://api.thingspeak.com/update?api_key="+self.fridgeAPI+"&field2="+str(self.tsdm.value_h))
+                print("Humidity value updated on ThingSpeak: "+str(self.tsdm.value_h))
                 self.tsdm.value_h = None
 
-        time.sleep(2)
+            time.sleep(11)
+
 
 if __name__ == "__main__":
 
@@ -155,5 +174,7 @@ if __name__ == "__main__":
         
         tsdm = ThingSpeakDataManager(client_ID, userID, fridgeID, brokerIP, brokerPort)
         tsdm.start()
-        tsThread = TSThread(tsdm, userID, fridgeID, fridgeAPI, catalogURL)
-        tsThread.start()
+        tempThread = TemperatureThread(tsdm, userID, fridgeID, fridgeAPI, catalogURL)
+        tempThread.start()
+        humThread = HumidityThread(tsdm, userID, fridgeID, fridgeAPI, catalogURL)
+        humThread.start()
