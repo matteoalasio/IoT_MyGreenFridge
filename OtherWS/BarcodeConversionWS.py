@@ -1,10 +1,12 @@
 import cherrypy
 import json
+import socket
 import threading
 import requests
 import sys
 from pyzbar.pyzbar import decode
 import cv2
+import time
 
 class BarcodeConversionREST(object):
     
@@ -54,6 +56,28 @@ class BarcodeConversionREST(object):
         return jsonOutput
 
 
+class RegistrationThread(threading.Thread):
+        
+        def __init__(self, catalogIP, catalogPort, devIP, devPort):
+            threading.Thread.__init__(self)
+        
+        def run(self):
+            url = "http://"+ catalogIP + ":"+ catalogPort + "/"
+            while True:
+
+                ### register BarcodeConversionREST as a web service
+                dictWS = {"name": ("BarcodeConversionWS"),
+                                    "IP": devIP,
+                                    "port": devPort}
+                jsonWS = json.dumps(dictWS)
+                r = requests.post(url+"add_WS", data=jsonWS)
+                
+                print("BarcodeConversionWS registered.")
+
+                time.sleep(60)
+
+
+
 
 
 if __name__ == '__main__':
@@ -66,8 +90,39 @@ if __name__ == '__main__':
             'tools.sessions.on': True
         }
     }
+    
+    # get IP address of BarcodeConversionWS
+    s = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
+    s.connect(("8.8.8.8", 80))
+    devIP = s.getsockname()[0]
+    devPort = 8689
 
-    devPort = 8080
+    # read configuration file
+    try:
+        configFile = open("configBarcodeConversion.txt", "r")
+        configJson = configFile.read()
+        configDict = json.loads(configJson)
+        configFile.close()
+    except OSError:
+        sys.exit("ERROR: cannot open the configuration file.")
+        
+    catalogIP = configDict["catalogIP"]
+    catalogPort = configDict["catalogPort"]
+
+    print("Catalog IP is: " + catalogIP)
+    print("Catalog port is " + catalogPort)
+
+    regThread = RegistrationThread(catalogIP, catalogPort, devIP, devPort)
+
+    regThread.start()
+
+    
+    # deploy the BarcodeConversionREST class and start the web server
+    cherrypy.tree.mount(BarcodeConversionREST(), '/', conf)
+    cherrypy.config.update({'server.socket_host': '0.0.0.0'})
+    cherrypy.config.update({'server.socket_port': devPort})
+    cherrypy.engine.start()
+    cherrypy.engine.block()
 
     #filename = "barcode_image.jpg"
     #img = cv2.imread(filename)
@@ -83,11 +138,3 @@ if __name__ == '__main__':
     # polygon=[Point(x=419, y=153), Point(x=419, y=235), Point(x=536, y=237),
     #           Point(x=659, y=236), Point(x=659, y=148), Point(x=658, y=116),
     #           Point(x=536, y=115), Point(x=420, y=115)])]
-
-    
-    # deploy the DeviceConnectorREST class and start the web server
-    cherrypy.tree.mount(BarcodeConversionREST(), '/', conf)
-    cherrypy.config.update({'server.socket_host': '0.0.0.0'})
-    cherrypy.config.update({'server.socket_port': devPort})
-    cherrypy.engine.start()
-    cherrypy.engine.block()
