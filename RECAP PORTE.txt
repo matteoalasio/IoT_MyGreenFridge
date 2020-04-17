@@ -1,0 +1,12 @@
+RECAP PORTE:
+
+Catalog : 8080
+DeviceConnector : 8082
+
+FridgeStatusAdaptor: 8585
+
+TemperatureWS : 8587
+HumidityWS: 8487
+
+TemperatureAlarmWS: 8687
+ExpirationAlarmWS: 8684
