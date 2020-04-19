@@ -332,7 +332,6 @@ if __name__ == '__main__':
         brokerPort = broker["broker_port"]
     except requests.RequestException as err:
         sys.exit("ERROR: cannot retrieve the Broker IP from the Catalog.")
-        pass
 
 
     # instantiate a DeviceConnector object

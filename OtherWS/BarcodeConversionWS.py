@@ -112,8 +112,9 @@ if __name__ == '__main__':
     print("Catalog IP is: " + catalogIP)
     print("Catalog port is " + catalogPort)
 
+    
+    # register BarcodeConversionREST as a web service
     regThread = RegistrationThread(catalogIP, catalogPort, devIP, devPort)
-
     regThread.start()
 
     
@@ -125,7 +126,7 @@ if __name__ == '__main__':
     cherrypy.engine.block()
 
     #filename = "barcode_image.jpg"
-    #img = cv2.imread(filename)
+    #import 
     #gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     #barcodes = decode(gray_img)
     
