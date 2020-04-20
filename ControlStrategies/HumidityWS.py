@@ -123,6 +123,27 @@ class HumidityThread(threading.Thread):
 
                 time.sleep(15)
 
+class RegistrationThread(threading.Thread):
+
+        def __init__(self, catalogIP, catalogPort, WS_IP, WS_Port):
+            threading.Thread.__init__(self)
+            self.catalogIP = catalogIP
+            self.catalogPort = catalogPort
+            self.WS_IP = WS_IP
+            self.WS_Port = WS_Port
+
+        def run(self):
+            url = "http://"+ self.catalogIP + ":"+ self.catalogPort + "/"
+            while True:
+
+                ### register ProductsControlWS as a web service
+                web_service = json.dumps({"name": "HumidityWS", "IP": self.WS_IP, "port": self.WS_Port})
+                r1 = requests.post(catalog_URL + "add_WS", web_service)
+
+                print("HumidityWS registered.")
+
+                time.sleep(60*60)
+
 
 if __name__ == '__main__':
 
@@ -142,9 +163,10 @@ if __name__ == '__main__':
     s.connect(("8.8.8.8", 80))
     ip = s.getsockname()[0]
     port = "8487"
-    web_service = json.dumps(
-        {"name": "HumidityWS", "IP": ip, "port": port})
-    r1 = requests.post(catalog_URL + "add_WS", web_service)
+
+    regThread = RegistrationThread(catalog_IP, catalog_Port, ip, port)
+    regThread.start()
+
 
     try:
         r = requests.get(catalog_URL + "broker")
