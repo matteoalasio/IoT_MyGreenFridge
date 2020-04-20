@@ -67,6 +67,28 @@ class TemperatureAlarmThread(threading.Thread):
 
             time.sleep(10)
 
+class RegistrationThread(threading.Thread):
+
+        def __init__(self, catalogIP, catalogPort, WS_IP, WS_Port):
+            threading.Thread.__init__(self)
+            self.catalogIP = catalogIP
+            self.catalogPort = catalogPort
+            self.WS_IP = WS_IP
+            self.WS_Port = WS_Port
+
+        def run(self):
+            url = "http://"+ self.catalogIP + ":"+ self.catalogPort + "/"
+            while True:
+
+                ### register ProductsControlWS as a web service
+                web_service = json.dumps({"name": "TemperatureAlarmWS", "IP": self.WS_IP, "port": self.WS_Port})
+                r1 = requests.post(catalog_URL + "add_WS", web_service)
+
+                print("TemperatureAlarmWS registered.")
+
+                time.sleep(60*60)
+
+
 
 if __name__ == '__main__':
     # Open file of configuration, including the data of the catalog
@@ -95,9 +117,9 @@ if __name__ == '__main__':
     s.connect(("8.8.8.8", 80))
     ip = s.getsockname()[0]
     port = "8687"
-    web_service = json.dumps(
-        {"name": "TemperatureAlarmWS", "IP": ip, "port": port})
-    r2 = requests.post(catalog_URL + "add_WS", web_service)
+
+    regThread = RegistrationThread(catalog_IP, catalog_Port, ip, port)
+    regThread.start()
 
     for user in users['users']:
         user_ID = user['ID']

@@ -115,6 +115,27 @@ class FridgeStatusThread(threading.Thread):
 
             time.sleep(15)
 
+class RegistrationThread(threading.Thread):
+
+        def __init__(self, catalogIP, catalogPort, WS_IP, WS_Port):
+            threading.Thread.__init__(self)
+            self.catalogIP = catalogIP
+            self.catalogPort = catalogPort
+            self.WS_IP = WS_IP
+            self.WS_Port = WS_Port
+
+        def run(self):
+            url = "http://"+ self.catalogIP + ":"+ self.catalogPort + "/"
+            while True:
+
+                ### register ProductsControlWS as a web service
+                web_service = json.dumps({"name": "FridgeStatusAdaptorWS", "IP": self.WS_IP, "port": self.WS_Port})
+                r1 = requests.post(catalog_URL + "add_WS", web_service)
+
+                print("FridgeStatusAdaptorWS registered.")
+
+                time.sleep(60*60)
+
 
 if __name__ == '__main__':
 
@@ -129,8 +150,8 @@ if __name__ == '__main__':
     # get IP address of the RPI
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.connect(("8.8.8.8", 80))
-    IP = s.getsockname()[0]
-    Port = 8585
+    ip = s.getsockname()[0]
+    port = 8585
 
 
     file = open("Configuration.txt", "r")
@@ -141,9 +162,8 @@ if __name__ == '__main__':
     file.close()
     catalog_URL = "http://" + catalog_IP + catalog_Port
 
-    web_service = json.dumps(
-        {"name": "FridgeStatusWS", "IP": IP, "port": Port})
-    r3 = requests.post(catalog_URL + "add_WS", web_service)
+    regThread = RegistrationThread(catalog_IP, catalog_Port, ip, port)
+    regThread.start()
 
     try:
         r = requests.get(catalog_URL + "broker")
@@ -176,6 +196,6 @@ if __name__ == '__main__':
 
         cherrypy.tree.mount(FridgeREST(FridgeStatus_Controller), '/', conf)
         cherrypy.config.update({'server.socket_host': '0.0.0.0'})
-        cherrypy.config.update({'server.socket_port': Port})
+        cherrypy.config.update({'server.socket_port': port})
         cherrypy.engine.start()
     cherrypy.engine.block()

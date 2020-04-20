@@ -49,7 +49,7 @@ class ExpirationAlarmThread(threading.Thread):
             for product in res['Products']:
                 if (int(product['Exp_date']['year']) == int(year)):
                     if (int(product['Exp_date']['month']) == int(month)):
-                        if (int(product['Exp_date']['day']) - int(day) <=3):
+                        if (int(product['Exp_date']['day']) - int(day) <=3 and int(product['Exp_date']['day']) - int(day) >=0):
                             difference =  int(product['Exp_date']['day']) - int(day)
                             try:
                                 if difference == 0:
@@ -66,6 +66,27 @@ class ExpirationAlarmThread(threading.Thread):
 
 
             time.sleep(24*60*60)
+
+class RegistrationThread(threading.Thread):
+
+        def __init__(self, catalogIP, catalogPort, WS_IP, WS_Port):
+            threading.Thread.__init__(self)
+            self.catalogIP = catalogIP
+            self.catalogPort = catalogPort
+            self.WS_IP = WS_IP
+            self.WS_Port = WS_Port
+
+        def run(self):
+            url = "http://"+ self.catalogIP + ":"+ self.catalogPort + "/"
+            while True:
+
+                ### register ProductsControlWS as a web service
+                web_service = json.dumps({"name": "ExpirationAlarmWS", "IP": self.WS_IP, "port": self.WS_Port})
+                r1 = requests.post(catalog_URL + "add_WS", web_service)
+
+                print("ExpirationAlarmWS registered.")
+
+                time.sleep(60*60)
 
 
 
@@ -88,9 +109,9 @@ if __name__ == '__main__':
     s.connect(("8.8.8.8", 80))
     ip = s.getsockname()[0]
     port = "8684"
-    web_service = json.dumps(
-        {"name": "ExpirationAlarmWS", "IP": ip, "port": port})
-    r2 = requests.post(catalog_URL + "add_WS", web_service)
+
+    regThread = RegistrationThread(catalog_IP, catalog_Port, ip, port)
+    regThread.start()
 
     #Get the list of the users
     r3 = requests.get(catalog_URL + 'users/')
