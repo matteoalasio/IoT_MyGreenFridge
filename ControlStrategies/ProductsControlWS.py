@@ -88,11 +88,25 @@ class ProductsThread(threading.Thread):
 
 		def run(self):
 			while True:
-				#topic = "MyGreenFridge/#"
-				topic = "MyGreenFridge/1234/5678/camera0"
-				productsControlMQTT.mySubscribe(topic)
 				
+				topicSubscribe = "MyGreenFridge/1234/5678/camera0"
+				productsControlMQTT.mySubscribe(topicSubscribe)
+
+				imageString = productsControlMQTT.productsController.getImage()
+
+				topicPublish = "MyGreenFridge/1234/5678/EAN0"
+
+				if imageString != "":
+
+					EANcode = productsControlMQTT.productsController.imageToEan(imageString)
+
+					messageDict = {"EAN0": EANcode}
+					messageJson = json.dumps(messageDict)
+					
+					productsControlMQTT.myPublish(topicPublish, messageJson)
+
 				time.sleep(15)
+
 
 class RegistrationThread(threading.Thread):
 		
@@ -170,7 +184,7 @@ if __name__ == '__main__':
 				#print(image0Init)
 
 	clientID = "ProductsControlWS_1234_5678"
-	topic = "MyGreenFridge/1234/5678/camera0"
+	
 	initialImageString = ""
 	productsController = ProductsControl(initialImageString)
 	productsControlMQTT = ProductsControlMQTT(clientID, brokerIP, brokerPort, productsController)
