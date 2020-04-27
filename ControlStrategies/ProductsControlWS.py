@@ -41,8 +41,7 @@ class ProductsControlMQTT:
 		message = json.loads(msg.payload.decode("utf-8"))
 
 		imageString = ((message["e"])[0])["v"]
-		# STRING TO CONVERT
-		print("STRING TO CONVERT")
+
 		self.productsController.updateImage(imageString)
 
 
@@ -83,27 +82,52 @@ class ProductsControlMQTT:
 
 class ProductsThread(threading.Thread):
 
-		def __init__(self, productsControlMQTT):
+		def __init__(self, productsControlMQTT, userID, fridgeID, sensorID, catalogIP, catalogPort):
 			threading.Thread.__init__(self)
 
 		def run(self):
+
+			# subscribe to the topic related to camera0
+			topicSubscribe = "MyGreenFridge/" + userID + "/" + fridgeID + "/camera0"
+			productsControlMQTT.mySubscribe(topicSubscribe)
+
+			url = "http://"+ catalogIP + ":"+ catalogPort + "/update_sensor?Fridge_ID=" + fridgeID
+
 			while True:
 				
-				topicSubscribe = "MyGreenFridge/1234/5678/camera0"
-				productsControlMQTT.mySubscribe(topicSubscribe)
-
+				# imageString is received on topicSubscribe and stored in productsControlMQTT.productsController
 				imageString = productsControlMQTT.productsController.getImage()
 
-				topicPublish = "MyGreenFridge/1234/5678/EAN0"
+				
+				# publish EANcode corresponding to imageString on the relative topic
+				topicPublish = "MyGreenFridge/" + userID + "/" + fridgeID + "/EAN0"
 
-				if imageString != "":
+				try:
 
+					# get EANcode from imageString	
 					EANcode = productsControlMQTT.productsController.imageToEan(imageString)
 
 					messageDict = {"EAN0": EANcode}
 					messageJson = json.dumps(messageDict)
 					
+					# publish on topicPublish
 					productsControlMQTT.myPublish(topicPublish, messageJson)
+
+				except: # catch all exceptions
+					
+					# if the EAN code cannot be retrieved, print an error
+					e = sys.exc_info()[0]
+					print("ERROR: cannot publish EAN0.")
+					print(e)
+
+				# update the value of the camera0 image on the Catalog,
+				# only if it is different from the value that is currently stored on the Catalog
+
+				dictC0 = {"sensor_ID": sensorID,
+							"Value": imageString}
+				jsonC0 = json.dumps(dictC0)
+				r = requests.put(url, data=jsonC0)
+
 
 				time.sleep(15)
 
@@ -114,7 +138,7 @@ class RegistrationThread(threading.Thread):
 			threading.Thread.__init__(self)
 		
 		def run(self):
-			url = "http://"+ catalogIP + ":"+ catalogPort + "/"
+			url = "http://"+ catalogIP + ":"+ catalogPort + "/add_WS"
 			while True:
 
 				### register ProductsControlWS as a web service
@@ -122,7 +146,7 @@ class RegistrationThread(threading.Thread):
 									"IP": devIP,
 									"port": devPort}
 				jsonWS = json.dumps(dictWS)
-				r = requests.post(url+"add_WS", data=jsonWS)
+				r = requests.post(url, data=jsonWS)
 				
 				print("ProductsControlWS registered.")
 
@@ -171,25 +195,26 @@ if __name__ == '__main__':
 	r2 = requests.get(catalogURL + "/fridges")
 	fridges = r2.json() # fridges is a Python dictionary
 
+	sensorID = "camera0"
+
 	# iterate over all the fridges
 	for fridge in fridges["fridges"]:
+		
 		userID =  fridge["user"]
 		fridgeID = fridge["ID"]
 		clientID = "ProductsControlWS_" + userID + "_" + fridgeID
 
 		# get the current value of the image from camera0 which is stored in the Catalog
 		for sensor in fridge["sensors"]:
-			if (sensor["sensor_ID"] == "camera0"):
-				image0Init = sensor["Value"]
-				#print(image0Init)
+			if (sensor["sensor_ID"] == sensorID):
+				initialImageString = sensor["Value"]
 
-	clientID = "ProductsControlWS_1234_5678"
-	
-	initialImageString = ""
-	productsController = ProductsControl(initialImageString)
-	productsControlMQTT = ProductsControlMQTT(clientID, brokerIP, brokerPort, productsController)
-	productsControlMQTT.start()
+		productsController = ProductsControl(initialImageString)
+		productsControlMQTT = ProductsControlMQTT(clientID, brokerIP, brokerPort, productsController)
+		productsControlMQTT.start()
 
-	prodThread = ProductsThread(productsControlMQTT)
-	prodThread.start()
+		prodThread = ProductsThread(productsControlMQTT, userID, fridgeID, sensorID, catalogIP, catalogPort)
+		prodThread.start()
+
+
 
