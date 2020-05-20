@@ -4,6 +4,7 @@ Catalog : 8080
 DeviceConnectorWS : 8082
 
 FridgeStatusAdaptor: 8585
+ProductAdaptor: 8586
 
 TemperatureWS : 8587
 HumidityWS: 8487
