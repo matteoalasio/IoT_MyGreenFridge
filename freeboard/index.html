@@ -25,7 +25,7 @@
                             'method': 'get',
                             'success': function(data, status, xhr) {
                                 console.log(data)
-                                freeboard.loadDashboard(JSON.parse(data));
+                                freeboard.loadDashboard(data);
                             },
                             'error': function(xhr, status, error) {
                                 freeboard.showDialog(xhr.responseJSON.error, error, "OK");
