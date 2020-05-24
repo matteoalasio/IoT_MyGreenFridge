@@ -327,6 +327,7 @@ if __name__ == '__main__':
     catalogURL = "http://" + catalogIP + ":" + catalogPort
     try:
         r = requests.get(catalogURL + "/broker")
+        print(r)
         broker = r.json()
         brokerIP = broker["broker_IP"]
         brokerPort = broker["broker_port"]
