@@ -11,11 +11,11 @@ if __name__ == '__main__':
 	s = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
 	s.connect(("8.8.8.8", 80))
 	devIP = s.getsockname()[0]
-	devPort = 8690
+	devPort = 8691
 
 	# read configuration file
 	try:
-		configFile = open("configProductsControl.txt", "r")
+		configFile = open("configConsumptionControl.txt", "r")
 		configJson = configFile.read()
 		configDict = json.loads(configJson)
 		configFile.close()
@@ -28,9 +28,9 @@ if __name__ == '__main__':
 	print("Catalog IP is: " + catalogIP)
 	print("Catalog port is " + catalogPort)
 
-	nameWS = "ProductsControlWS"
-	sensorID = "camera0"
-	topicEnd = "EAN0"
+	nameWS = "ConsumptionControlWS"
+	sensorID = "camera1"
+	topicEnd = "EAN1"
 
 	mainFunct(catalogIP, catalogPort, devIP, devPort, nameWS, sensorID, topicEnd)
 
