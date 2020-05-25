@@ -220,7 +220,7 @@ class RegistrationThread(threading.Thread):
             while True:
                 ### register user
                 dictUser = {"ID": deviceConnector.userID,
-                            "nickname": None}
+                            "password": deviceConnector.password}
                 jsonUser = json.dumps(dictUser)
                 r1 = requests.post(url+"add_user", data=jsonUser)
 
@@ -319,6 +319,7 @@ if __name__ == '__main__':
     humidityID = configDict["humidityID"]
     camera0ID = configDict["camera0ID"]
     camera1ID = configDict["camera1ID"]
+    password = configDict["password"]
 
     print("Catalog IP is: " + catalogIP)
     print("Catalog port is " + catalogPort)
@@ -336,7 +337,7 @@ if __name__ == '__main__':
 
 
     # instantiate a DeviceConnector object
-    deviceConnector = DeviceConnector(devIP, devPort, userID, fridgeID, temperatureID, humidityID, camera0ID, camera1ID)
+    deviceConnector = DeviceConnector(devIP, devPort, userID, fridgeID, temperatureID, humidityID, camera0ID, camera1ID, password)
 
     clientID = "DeviceConnectorWS_"+ deviceConnector.userID + "_" + deviceConnector.fridgeID
 

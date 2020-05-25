@@ -5,7 +5,7 @@ import socket
 class DeviceConnector(object):
 	
 	# constructor
-	def __init__(self, ip, port, userID, fridgeID, temperatureID, humidityID, camera0ID, camera1ID):
+	def __init__(self, ip, port, userID, fridgeID, temperatureID, humidityID, camera0ID, camera1ID, password):
 
 		# IP and port
 		self.ip = ip
@@ -17,6 +17,7 @@ class DeviceConnector(object):
 		self.humidityID = humidityID
 		self.camera0ID = camera0ID
 		self.camera1ID = camera1ID
+		self.password = password
 
 
 	def get_temperature(self):
