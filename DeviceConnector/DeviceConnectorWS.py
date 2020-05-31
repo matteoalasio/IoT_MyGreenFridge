@@ -124,14 +124,16 @@ class DeviceConnectorMQTT:
 	def myOnMessageReceived (self, paho_mqtt , userdata, msg):
 		# A new message is received
 		#self.notifier.notify (msg.topic, msg.payload)
-		print("Message received: " + str(msg.payload))
-		print("On topic: ", str(msg.topic))
+		#print("Message received: " + str(msg.payload))
+		#print("On topic: ", str(msg.topic))
+		print("Message received on topic: ", str(msg.topic))
 
 
 	def myPublish (self, topic, msg):
 		# if needed, you can do some computation or error-check before publishing
-		print ("Publishing message: " + str(msg))
-		print("with topic: " + str(topic))
+		#print ("Publishing message: " + str(msg))
+		#print("with topic: " + str(topic))
+		print(" Publishing message with topic: " + str(topic))
 		# publish a message with a certain topic
 		self._paho_mqtt.publish(topic, msg, 2)
 
@@ -218,21 +220,16 @@ class RegistrationThread(threading.Thread):
         def run(self):
             url = "http://"+ catalogIP + ":"+ catalogPort + "/"
             while True:
-                ### register user
-                dictUser = {"ID": deviceConnector.userID,
-                            "password": deviceConnector.password}
-                jsonUser = json.dumps(dictUser)
-                r1 = requests.post(url+"add_user", data=jsonUser)
+                
 
                 ### register fridge
+                # The body required is : {"ID":"", "sensors":[], "IP": "", "port": ""}
                 dictFridge = {"ID": deviceConnector.fridgeID,
-                              "user": None,
                               "sensors":[],
-                              "products": [],
                               "IP": deviceConnector.ip,
                               "port": deviceConnector.port}
                 jsonFridge = json.dumps(dictFridge)
-                r2 = requests.post(url+"add_fridge", data=jsonFridge)
+                r2 = requests.put(url+"update_fridge", data=jsonFridge)
 
                 ### register sensors in the fridge
 
@@ -268,9 +265,6 @@ class RegistrationThread(threading.Thread):
                 jsonC1 = json.dumps(dictC1)
                 r6 = requests.post(url+"add_sensor?Fridge_ID=" + deviceConnector.fridgeID, data=jsonC1)
 
-
-                ### associate fridge with user
-                r7 = requests.get(url+"association?Fridge_ID=" + deviceConnector.fridgeID + "&User_ID=" + deviceConnector.userID)
 
                 ### register DeviceConnectorWS as a web service
                 dictWS = {"name": ("DeviceConnectorWS_"+ deviceConnector.userID + "_" + deviceConnector.fridgeID),

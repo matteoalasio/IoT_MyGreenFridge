@@ -39,20 +39,22 @@ class ProductsAdaptorREST(object):
 			raise cherrypy.HTTPError(400)
 
 		json_body = cherrypy.request.body.read()
-		body = json.loads(json_body) #(prod_id, fridge_id, exp date)
-
+		body = json.loads(json_body) #(exp date)
+		print (body)
 		if uri[0] == 'add_expiration':
 			product_ID = params['Product_ID']
 			fridge_ID = params['Fridge_ID']
-			r3 = requests.post(catalog_URL + "/add_expiration?Fridge_ID=" + fridge_ID + "&Product_ID=" + product_ID, data=json.dumps(body))
+			print("okokok")
+			r3 = requests.post(catalog_URL + "add_expiration?Fridge_ID=" + fridge_ID + "&Product_ID=" + product_ID, data=json.dumps(body))
 			print("data di scadenza aggiunta al frigo")
 
 		if uri[0] == 'add_wasted':
 			product_ID = params['Product_ID']
 			fridge_ID = params['Fridge_ID']
 			if body["status"] == "wasted":
-				body = { "product_ID": product_ID}
-				r3 = requests.post(catalog_URL + "/add_wasted?Fridge_ID=" + fridge_ID, data=json.dumps(body))
+				corpo = { "product_ID": product_ID}
+				print("okokok")
+				r3 = requests.post(catalog_URL + "add_wasted?Fridge_ID=" + fridge_ID, data=json.dumps(corpo))
 				print("prodotto rimosso")
 
 	def PUT (self, *uri, **params):
@@ -136,7 +138,7 @@ class ProductsAdaptorMQTT:
 			# GET AL PROD_INPUT_WS per ricavare expiratio_date
 			# /insert_product?product_name=<name>&brands=<brand>
 
-			r2 = requests.get(url_product_input_WS  + "insert_product?userID=" + userID + "&product_name=" + prod_in["product"] + "&brands=" + prod_in["brand"])
+			r2 = requests.get(url_product_input_WS  + "insert_product?FridgeID=" + fridgeID + "&userID=" + userID + "&product_name=" + prod_in["product"] + "&brands=" + prod_in["brand"])
 
 			print("get al ws fatta")
 
@@ -166,7 +168,7 @@ class ProductsAdaptorMQTT:
 
 			# GET AL PROD_OUtPUT_WS per ottenere status
 
-			r2 = requests.get(url_product_output_WS  + "delete_product?userID=" + userID + "&product_name=" + prod_out["product"] + "&brands=" + prod_out["brand"])
+			r2 = requests.get(url_product_output_WS  + "delete_product?FridgeID=" + fridgeID + "&userID=" + userID + "&product_name=" + prod_out["product"] + "&brands=" + prod_out["brand"])
 
 			print("get al ws fatta")
 
@@ -193,12 +195,12 @@ class RegistrationThread(threading.Thread):
 			self.WS_Port = WS_Port
 
 		def run(self):
-			url = "http://"+ self.catalogIP + ":"+ self.catalogPort + "/"
+			url = "http://"+ self.catalogIP + self.catalogPort
 			while True:
 
 				### register ProductsControlWS as a web service
 				web_service = json.dumps({"name": "ProductAdaptorWS", "IP": self.WS_IP, "port": self.WS_Port})
-				r1 = requests.post(catalog_URL + "add_WS", web_service)
+				r1 = requests.post(url + "add_WS", web_service)
 
 				print("ProductAdaptorWS registered.")
 
@@ -276,20 +278,19 @@ if __name__ == '__main__':
 	url_product_output_WS = "http://" + str(IP) + ":" + str(product_output_port) + "/"
 
 
-	# for fridge in fridges["fridges"]:
-	f = fridges["fridges"]
-	fridge = f[1]
-	userID =  fridge["user"]
-	fridgeID = fridge["ID"]
-	clientID = "ProductsAdaptorlWS_" + userID + "_" + fridgeID
+	for fridge in fridges["fridges"]:
+
+		userID =  fridge["user"]
+		fridgeID = fridge["ID"]
+		clientID = "ProductsAdaptorlWS_" + userID + "_" + fridgeID
 
 
-	MQTT_ProductsAdaptor = ProductsAdaptorMQTT(clientID , userID , fridgeID , broker_IP , broker_port, catalog_Port , url_barcode_WS , url_product_input_WS , url_product_output_WS)
-	MQTT_ProductsAdaptor.start()
+		MQTT_ProductsAdaptor = ProductsAdaptorMQTT(clientID , userID , fridgeID , broker_IP , broker_port, catalog_Port , url_barcode_WS , url_product_input_WS , url_product_output_WS)
+		MQTT_ProductsAdaptor.start()
 
 
-	ProductsAdaptor_Thread = ProductsAdaptorThread(MQTT_ProductsAdaptor)
-	ProductsAdaptor_Thread.start()
+		ProductsAdaptor_Thread = ProductsAdaptorThread(MQTT_ProductsAdaptor)
+		ProductsAdaptor_Thread.start()
 
 
 	cherrypy.tree.mount(ProductsAdaptorREST(catalog_URL), '/', conf)

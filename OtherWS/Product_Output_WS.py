@@ -18,15 +18,9 @@ class ProductOutputREST(object):
 	def GET (self, *uri, **params):
 		if (len(uri)!=1):
 			raise cherrypy.HTTPError(404, "Error: wrong number of uri")
-		# /remove_product?product_name=<name>&brands=<brand>
+		# /delete_product?userID=<IDuser>&Fridge_ID=<FridgeID>&product_name=<name>&brands=<brand>
 		elif (uri[0] == "delete_product"):
-			product_name = params["product_name"]
-			brand = params["brands"]
-
-		if (len(uri)!=1):
-			raise cherrypy.HTTPError(404, "Error: wrong number of uri")
-		# /delete_product?userID=<IDuser>&product_name=<name>&brands=<brand>
-		elif (uri[0] == "delete_product"):
+			Fridge_ID = params["FridgeID"]
 			userID = params["userID"]
 			product_ID = params["product_name"]
 			brand = params["brands"]
@@ -44,7 +38,8 @@ class ProductOutputREST(object):
 			# richiesta BOT
 
 			r2 = requests.get('https://api.telegram.org/bot' + self.bot_Token + '/sendMessage?chat_id=' + str(ID_bot) +
-										  '&text=' + 'The product ' + str(self.product_ID) + ' has been removed. Please write /delete_product and specify if it is wasted or not.')
+										  '&text=' + 'The product ' + str(self.product_ID) + ' has been removed from the fridge ' + str(Fridge_ID) + 
+										  '. Please write /delete_product and specify if it is wasted or not.')
 
 
 		# # richiedere exp_date mediante BOT

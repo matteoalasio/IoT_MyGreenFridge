@@ -7,8 +7,6 @@ class Catalog(object):
     def __init__(self, filename):
         self.filename = filename
 
-    # Inizializziamo il catalog con un file in cui sono raccolte tutte le informazioni
-
     # Return information about broker IP address and port
     def broker(self):
         file = open(self.filename, 'r')
@@ -18,30 +16,49 @@ class Catalog(object):
 
         return dict['broker_IP'], dict['broker_port']
 
-    # Associate to a user, a specific fridge
-    def associate_user_fridge(self, user_ID, fridge_ID):
+    # Update the password when already exists
+    def update_pw(self, user_ID, updated_password):
         file = open(self.filename, 'r')
         json_file = file.read()
         dict = json.loads(json_file)
         file.close()
 
-        user_found = 0
         for user in dict['users']:
             if user['ID'] == user_ID:
-                user_found = 1
+                if (user['password'] == updated_password['password']):
+                    user['password'] = updated_password['new_password']
+                    file = open(self.filename, 'w')
+                    file.write(json.dumps(dict))
+                    file.close()
+                    return "Password updated!"
+                return "Password is not correct!"
+        return "User not found!"
 
-        if user_found == 0:
-            return "User not found!"
 
-        # If the user is found, search for the fridge
-        for fridge in dict['fridges']:
-            if fridge['ID'] == fridge_ID:
-                fridge['user'] = user_ID
-                file = open(self.filename, 'w')
-                file.write(json.dumps(dict))
-                file.close()
-                return "Search is ended, the association is complete"
-        return "Fridge not found!"
+    # Associate to a user, a specific fridge
+    # def associate_user_fridge(self, user_ID, fridge_ID):
+    #     file = open(self.filename, 'r')
+    #     json_file = file.read()
+    #     dict = json.loads(json_file)
+    #     file.close()
+
+    #     user_found = 0
+    #     for user in dict['users']:
+    #         if user['ID'] == user_ID:
+    #             user_found = 1
+
+    #     if user_found == 0:
+    #         return "User not found!"
+
+    #     # If the user is found, search for the fridge
+    #     for fridge in dict['fridges']:
+    #         if fridge['ID'] == fridge_ID:
+    #             fridge['user'] = user_ID
+    #             file = open(self.filename, 'w')
+    #             file.write(json.dumps(dict))
+    #             file.close()
+    #             return "Search is ended, the association is complete"
+    #     return "Fridge not found!"
 
 
 ###################################### USERS MANAGEMENT ########################################
@@ -81,7 +98,7 @@ class Catalog(object):
 
         # If it is not present, add it
         dict['users'].append({'ID': str(added_user['ID']), 'password': str(
-            added_user['password']), 'nickname': None, 'ID_bot': None})
+            added_user['password']), 'nickname': added_user['nickname'], 'ID_bot': added_user['ID_bot']})
         file = open(self.filename, 'w')
         file.write(json.dumps(dict))
         file.close()
@@ -155,36 +172,61 @@ class Catalog(object):
         return "Fridge not found!"
 
     # Add a new fridge
-    def add_fridge(self, added_fridge):
+    # def add_fridge(self, added_fridge):
+    #     file = open(self.filename, 'r')
+    #     json_file = file.read()
+    #     dict = json.loads(json_file)
+    #     file.close()
+
+    #     flag = 0
+    #     for fridge in dict['fridges']:
+    #         if fridge['ID'] == added_fridge['ID']:
+    #             flag = 1
+    #             fridge['insert-timestamp'] = time.time()
+    #             file = open(self.filename, 'w')
+    #             file.write(json.dumps(dict))
+    #             file.close()
+    #             return "Fridge already present. Time has been updated."
+
+    #     if flag == 0:
+    #         dict['fridges'].append({'ID': added_fridge['ID'], 'user': None,
+    #                                 'sensors': added_fridge['sensors'],
+    #                                 'products': added_fridge['products'],
+    #                                 'wasted': [],
+    #                                 'alarm_status': "off",
+    #                                 'insert-timestamp': time.time(),
+    #                                 'IP': added_fridge['IP'],
+    #                                 'port': added_fridge['port']})
+    #     file = open(self.filename, 'w')
+    #     file.write(json.dumps(dict))
+    #     file.close()
+
+    #     return "New fridge has been added"
+
+   # Add a new fridge
+    def add_fridge(self, fridge_user):
         file = open(self.filename, 'r')
         json_file = file.read()
         dict = json.loads(json_file)
         file.close()
 
-        flag = 0
-        for fridge in dict['fridges']:
-            if fridge['ID'] == added_fridge['ID']:
-                flag = 1
-                fridge['insert-timestamp'] = time.time()
+
+        for user in dict['users']:
+            if user['ID'] == fridge_user['user']:
+                dict['fridges'].append({'ID': fridge_user['ID'], 'user': fridge_user['user'],
+                                    'sensors': [],
+                                    'products': [],
+                                    'wasted': [],
+                                    'alarm_status': "off",
+                                    'insert-timestamp': None,
+                                    'IP': None,
+                                    'port': None})
+
                 file = open(self.filename, 'w')
                 file.write(json.dumps(dict))
                 file.close()
-                return "Fridge already present. Time has been updated."
-
-        if flag == 0:
-            dict['fridges'].append({'ID': added_fridge['ID'], 'user': None,
-                                    'sensors': added_fridge['sensors'],
-                                    'products': added_fridge['products'],
-                                    'wasted': [],
-                                    'alarm_status': "off",
-                                    'insert-timestamp': time.time(),
-                                    'IP': added_fridge['IP'],
-                                    'port': added_fridge['port']})
-        file = open(self.filename, 'w')
-        file.write(json.dumps(dict))
-        file.close()
-
-        return "New fridge has been added"
+                return "The fridge has been associated with the user."
+        return "User not found!"
 
     # Update a fridge that already exists
     def update_fridge(self, updated_fridge):
@@ -193,9 +235,14 @@ class Catalog(object):
         dict = json.loads(json_file)
         file.close()
 
+
         for fridge in dict['fridges']:
             if fridge['ID'] == str(updated_fridge['ID']):
-                fridge['insert-timestamp'] = time.time()
+                fridge['ID'] = updated_fridge['ID']
+                fridge['sensors'] = updated_fridge['sensors']
+                fridge['insert-timestamp']=time.time()
+                fridge['IP'] = updated_fridge['IP'],
+                fridge['port'] = updated_fridge['port']
                 file = open(self.filename, 'w')
                 file.write(json.dumps(dict))
                 file.close()

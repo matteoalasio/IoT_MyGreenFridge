@@ -189,6 +189,8 @@ if __name__ == '__main__':
 
 		i=i+1
 
+		temp_init = 0
+
 		for sensor in fridge["sensors"]:
 			if (sensor["sensor_ID"] == "temperature"):
 				temp_init = sensor["Value"]

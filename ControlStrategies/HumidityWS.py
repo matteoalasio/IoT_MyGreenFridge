@@ -98,7 +98,7 @@ class HumidityThread(threading.Thread):
                     MQTT_humidity.myPublish(topic_pub, pub_mess)
 
                 else:
-                    print ("humidity is ok for fridge ", self.fridge_ID)
+                    print ("Humidity is ok for fridge ", self.fridge_ID)
                     pub_mess = json.dumps({"v":0})
                     MQTT_humidity.myPublish(topic_pub, pub_mess)
 
@@ -189,6 +189,8 @@ if __name__ == '__main__':
         client_ID = "humidityclient_" + str(i)
 
         i=i+1
+
+        hum_init = 0
 
         for sensor in fridge["sensors"]:
             if (sensor["sensor_ID"] == "humidity"):

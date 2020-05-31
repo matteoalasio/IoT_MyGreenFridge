@@ -24,8 +24,7 @@ GET:
 """
 POST:
 - /add_fridge/ : Registration of a new fridge
-    The body required is : {"ID":"", "sensors":[], "products":[], "insert-timestamp": "", "IP": "", "port": ""}
-- /update_fridge/ : Update a specified fridge
+    The body required is : {"ID":"", "user":""}
 - /add_user/ : Registration of a new user
     The body required is {"ID":"", "password":""}
 - /add_sensor?Fridge_ID=<IDFridge> : Add a sensor to the correspondant Fridge
@@ -44,8 +43,12 @@ POST:
 PUT:
 - /update_user/ : Update a specified user adding the nickname
     The body required is {"ID":"", "nickname":"", "ID_bot":""}
+- /update_fridge/ : Update a specified fridge
+     The body required is : {"ID":"", "user":"", "sensors":[], "products":[], "wasted": [], "insert-timestamp": "", "IP": "", "port": ""}
 - /update_sensor?Fridge_ID=<IDFridge> : Update a sensor given the correspondant fridge
     The body required is {"sensor_ID":"", "Value":""}
+- /update_password?User_ID=<IDUser> : Update the password of the specified user
+    The body required is {"password":"", "new_password":""}
 """
 
 """
@@ -208,22 +211,14 @@ class Catalog_REST:
 
         #/add_fridge/
         # Registration of a new fridge
-        # The body required is : {"ID":"", "sensors":[], "products":[], "wasted": [], "insert-timestamp": "", "IP": "", "port": ""}
+        # The body required is : {"ID":"", "user":""}
         if uri[0] == 'add_fridge':
             info_added = self.catalog.add_fridge(body)
             return info_added
 
-        #/update_fridge/
-        # Update a specified fridge
-        elif uri[0] == 'update_fridge':
-            info_updated = self.catalog.update_fridge(body)
-            if info_updated == "Fridge not found!":
-                raise cherrypy.HTTPError(404, info_updated)
-            return info_updated
-
         #/add_user/
         # Registration of a new user
-        # The body required is {"ID":"", "password":""}
+        # The body required is {"ID":"", "password":"", "nickname": "", "ID_bot":""}
         elif uri[0] == 'add_user':
             info_added = self.catalog.add_user(body)
             if info_added == "User already present":
@@ -240,7 +235,6 @@ class Catalog_REST:
             if info_added == "Fridge not found!":
                 raise cherrypy.HTTPError(404, info_added)
             return info_added
-
 
 
         #/add_product?Fridge_ID=<IDFridge>
@@ -310,6 +304,17 @@ class Catalog_REST:
                 raise cherrypy.HTTPError(404, info_updated)
             return info_updated
 
+
+        #/update_fridge/
+        # Update a specified fridge
+        # The body required is : {"ID":"", "sensors":[], "products":[], "wasted": [], "insert-timestamp": "", "IP": "", "port": ""}
+        elif uri[0] == 'update_fridge':
+            info_updated = self.catalog.update_fridge(body)
+            if info_updated == "Fridge not found!":
+                raise cherrypy.HTTPError(404, info_updated)
+            return info_updated
+
+
         #/update_sensor?Fridge_ID=<IDFridge>
         # Update a sensor given the correspondant fridge
         # The body required is {"sensor_ID":"", "Value":""}
@@ -317,6 +322,18 @@ class Catalog_REST:
             fridge_ID = params['Fridge_ID']
             info_updated = self.catalog.update_sensor(fridge_ID, body)
             if info_updated == "Fridge not found!":
+                raise cherrypy.HTTPError(404, info_updated)
+            return info_updated
+
+        #/update_password?User_ID=<IDUser>
+        # Update the password of the specified user
+        # The body required is {"password":"", "new_password":""}
+        elif uri[0] == 'update_password':
+            user_ID = params['User_ID']
+            info_updated = self.catalog.update_pw(user_ID, body)
+            if info_updated == "Password is not correct!":
+                raise cherrypy.HTTPError(401, info_updated)
+            if info_updated == "User not found!":
                 raise cherrypy.HTTPError(404, info_updated)
             return info_updated
 

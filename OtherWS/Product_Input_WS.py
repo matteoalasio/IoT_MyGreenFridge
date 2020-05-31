@@ -19,8 +19,9 @@ class ProductInputREST(object):
 	def GET (self, *uri, **params):
 		if (len(uri) != 1):
 			raise cherrypy.HTTPError(404, "Error: wrong number of uri")
-		# /insert_product?userID=<IDuser>&product_name=<name>&brands=<brand>
+		# /insert_product?userID=<IDuser>&Fridge_ID=<FridgeID>&product_name=<name>&brands=<brand>
 		elif (uri[0] == "insert_product"):
+			Fridge_ID = params["FridgeID"]
 			userID = params["userID"]
 			product_ID = params["product_name"]
 			brand = params["brands"]
@@ -38,7 +39,8 @@ class ProductInputREST(object):
 			# richiesta BOT
 
 			r2 = requests.get('https://api.telegram.org/bot' + self.bot_Token + '/sendMessage?chat_id=' + str(ID_bot) +
-										  '&text=' + 'The product ' + str(product_ID) + ' has been added. Please write /add_product and insert its expiration date.')
+										  '&text=' + 'The product ' + str(product_ID) + ' has been added in the fridge ' + str(Fridge_ID) + 
+										  ' Please write /add_product and insert its expiration date.')
 
 
 
