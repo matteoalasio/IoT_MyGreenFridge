@@ -127,8 +127,7 @@ if __name__ == "__main__":
         sys.exit("ERROR: cannot open the configuration file.")
 
     userID = configDict['userID']
-    fridges = []
-    fridges = configDict['fridges']
+    #fridges = configDict['fridges']
     catalogIP = configDict['catalogIP']
     catalogPort = configDict['catalogPort']
 
@@ -147,6 +146,13 @@ if __name__ == "__main__":
     except requests.RequestException as err:
         sys.exit("ERROR: cannot retrieve the Broker IP from the Catalog.")
 
+    #fridges = []
+    try:
+        r = requests.get(catalogURL + "/"+userID+"/fridges")
+        fridges = r.json()
+    except requests.RequestException as err:
+        sys.exit("ERROR: cannot retrieve the info about the fridges.")
+    
     print ("This is the list of fridges:")
     print (fridges)
     n_fridges = len(fridges)
