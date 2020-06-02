@@ -102,8 +102,9 @@ class ProductsAdaptorMQTT:
 		self._isSubscriber = True
 
 	def myOnMessageReceived (self, paho_mqtt , userdata, msg):
-		print("Message received: " + str(msg.payload))
-		print("On topic: ", str(msg.topic))
+		#print("Message received: " + str(msg.payload))
+		#print("On topic: ", str(msg.topic))
+		print("Message received on topic: ", str(msg.topic))
 		# barcode_port = "8689"
 		# catalog_port = "8080"
 		# prod_in_port = "8690"
@@ -211,12 +212,16 @@ class ProductsAdaptorThread(threading.Thread):
 
 		def __init__(self, MQTT_ProductsAdaptor):
 			threading.Thread.__init__(self)
+			self.userID = MQTT_ProductsAdaptor.userID
+			self.fridgeID = MQTT_ProductsAdaptor.fridgeID
 
 		def run(self):
 			while True:
 
-				topic = "MyGreenFridge/1234/5678/+"
-				MQTT_ProductsAdaptor.mySubscribe(topic)
+				topic1 = "MyGreenFridge/" + self.userID + "/" + self.fridgeID + "/EAN0"
+				MQTT_ProductsAdaptor.mySubscribe(topic1)
+				topic2 = "MyGreenFridge/" + self.userID + "/" + self.fridgeID + "/EAN1"
+				MQTT_ProductsAdaptor.mySubscribe(topic2)
 
 				time.sleep(15)
 

@@ -307,7 +307,7 @@ class Catalog_REST:
 
         #/update_fridge/
         # Update a specified fridge
-        # The body required is : {"ID":"", "sensors":[], "products":[], "wasted": [], "insert-timestamp": "", "IP": "", "port": ""}
+        # The body required is : {"ID":"", "sensors":[], "IP": "", "port": ""}
         elif uri[0] == 'update_fridge':
             info_updated = self.catalog.update_fridge(body)
             if info_updated == "Fridge not found!":

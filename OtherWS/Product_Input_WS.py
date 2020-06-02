@@ -34,6 +34,8 @@ class ProductInputREST(object):
 			detail_user = r.json()
 			user = json.loads(detail_user['user'])
 			ID_bot = user['ID_bot']
+			print(ID_bot)
+			print(userID)
 
 			print ("prodotto da inserire ricevuto")
 			# richiesta BOT

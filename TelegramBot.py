@@ -40,13 +40,16 @@ class MyGreenFridgeBot:
             command = msg['text']
 
             if command == '/start':
-                self.bot.sendMessage(chat_id, "Hello " + name + "! Please register yourself with /register to get started.")
+                self.bot.sendMessage(chat_id, "Hello " + name + "! Please register yourself with /register to get started. If you need more infos, use the command /info.")
 
-            elif command == '/help':
+            elif command == '/info':
                 self.bot.sendMessage(chat_id, """You can register yourself on the system with: /register. Remember to use your user_ID! \n
-If you want to check the status of your fridge, use the command /check. The available infos are related to humidity, fridge, products in the fridge and the products that you have wasted.\n
-If you want to delete yourself, use the command /delete \n
-If you want to be informed when the temperature becomes out of range, please set it with /alarm.
+To associate a fridge to your user, use the command /add_fridge.\n
+Don't you remember you password? No problem! Use the command /password. \n
+To change your password, use the command /update_pw.\n
+To check the status of your fridge, use the command /check. The available infos are related to humidity, fridge, products in the fridge and the products that you have wasted.\n
+To delete yourself from the system, use the command /delete. \n
+To be informed when the temperature becomes out of range, please set it with /alarm. \n
                  """)
 
             #Registration of a new user
@@ -54,26 +57,17 @@ If you want to be informed when the temperature becomes out of range, please set
 
                 params_bot = command.split(' ')
                 if len(params_bot) < 3:
-                    self.bot.sendMessage(chat_id, 'The correct syntax is: /register user_ID password')
+                    self.bot.sendMessage(chat_id, 'The correct syntax is:\n /register user_ID password')
                     return
                 ID = params_bot[1]
                 pw = params_bot[2]
 
-                payload = {'ID': ID, 'nickname':name, 'ID_bot':chat_id}
-                URL = 'http://' + self.catalogIP + ':' + self.catalogport + '/update_user'
+                payload = {'ID': ID, 'nickname':name, 'ID_bot':chat_id, 'password':pw}
+                #URL = 'http://' + self.catalogIP + ':' + self.catalogport + '/update_user'
+                URL = 'http://' + self.catalogIP + ':' + self.catalogport + '/add_user'
                 try:
-                	#Check if the user has the persmission to register itself with that user_ID
-                	r = requests.get('http://' + self.catalogIP + ':' + self.catalogport + '/user?ID=' + str(ID))
+                	r = requests.post(URL, data = json.dumps(payload))
                 	r.raise_for_status()
-                	detail_user = r.json()
-                	user = json.loads(detail_user['user'])
-                	password = user['password']
-                	if (str(password) != str(pw)):
-                		self.bot.sendMessage(chat_id, "You can't be registered with this user. Please try another user_ID or password.")
-                		return
-
-                	r2 = requests.put(URL, data = json.dumps(payload))
-                	r2.raise_for_status()
                 except requests.HTTPError as err:
                     self.bot.sendMessage(chat_id, 'An error happened during registration. Try again.')
                     print (err)
@@ -82,11 +76,101 @@ If you want to be informed when the temperature becomes out of range, please set
                 self.bot.sendMessage(chat_id, "Hello " + name + "! You're now registered in the system." )
 
 
-            elif command == '/delete':
+            #Registration of a fridge
+            elif command.startswith ('/add_fridge'):
+
+                params_bot = command.split(' ')
+                if len(params_bot) < 4:
+                    self.bot.sendMessage(chat_id, 'The correct syntax is:\n /add_fridge user_ID password fridge_ID')
+                    return
+                ID = params_bot[1]
+                pw = params_bot[2]
+                fridge_ID = params_bot[3]
+
+                payload = {'ID': fridge_ID, 'user': ID}
+
+                URL = 'http://' + self.catalogIP + ':' + self.catalogport + '/add_fridge/'
+                try:
+                    #Check if the user has the permission to register the fridge
+                    r = requests.get('http://' + self.catalogIP + ':' + self.catalogport + '/user?ID=' + str(ID))
+                    r.raise_for_status()
+                    detail_user = r.json()
+                    user = json.loads(detail_user['user'])
+                    password = user['password']
+                    if (str(password) != str(pw)):
+                        self.bot.sendMessage(chat_id, "You can't apply any modification on this user. Please try another user_ID or insert the correct password.")
+                        return
+
+                    r2 = requests.post(URL, data = json.dumps(payload))
+                    r2.raise_for_status()
+                except requests.HTTPError as err:
+                    self.bot.sendMessage(chat_id, 'An error happened during registration of the fridge. Try again.')
+                    print (err)
+                    return
+
+                self.bot.sendMessage(chat_id, "Hello " + name + "! The fridge " + fridge_ID + " is now registered in your system." )
+
+            #Obtain your password
+            elif command.startswith ('/password'):
+
+                params_bot = command.split(' ')
+                if len(params_bot) < 2:
+                    self.bot.sendMessage(chat_id, 'The correct syntax is:\n /password user_ID')
+                    return
+                ID = params_bot[1]
+
+                try:
+                #Check if the user has the permission to get the password
+                    r = requests.get('http://' + self.catalogIP + ':' + self.catalogport + '/user?ID=' + str(ID))
+                    r.raise_for_status()
+                    detail_user = r.json()
+                    user = json.loads(detail_user['user'])
+                    nickname = user['nickname']
+                    ID_bot = user['ID_bot']
+                    if (str(ID_bot) != str(chat_id)):
+                        self.bot.sendMessage(chat_id, "You can't know the password of this user. Please try another user_ID.")
+                        return
+                    password = user['password']
+
+                except requests.HTTPError as err:
+                    self.bot.sendMessage(chat_id, 'An error happened during registration of the fridge. Try again.')
+                    print (err)
+                    return
+
+                self.bot.sendMessage(chat_id, "Hello " + name + "! Your password is " + password)
+
+
+            #Update the password
+            elif command.startswith ('/update_pw'):
+
+                params_bot = command.split(' ')
+                if len(params_bot) < 4:
+                    self.bot.sendMessage(chat_id, 'The correct syntax is:\n /update_pw user_ID password new_password')
+                    return
+                user_ID = params_bot[1]
+                pw = params_bot[2]
+                new_pw = params_bot[3]
+
+                payload = {'password': pw, 'new_password': new_pw}
+
+                URL = 'http://' + self.catalogIP + ':' + self.catalogport + '/update_password?User_ID=' + str(user_ID)
+                try:
+                    r = requests.put('http://' + self.catalogIP + ':' + self.catalogport + '/update_password?User_ID=' + str(user_ID), data = json.dumps(payload))
+                    r.raise_for_status()
+
+                except requests.HTTPError as err:
+                    self.bot.sendMessage(chat_id, 'An error happened while changing password. Try again.')
+                    print (err)
+                    return
+
+                self.bot.sendMessage(chat_id, "Hello " + name + "! Your password has been updated. ")
+
+
+            elif command.startswith ('/delete'):
 
                 params_bot = command.split(' ')
                 if len(params_bot) < 3:
-                    self.bot.sendMessage(chat_id, 'The correct syntax is: /delete user_ID password')
+                    self.bot.sendMessage(chat_id, 'The correct syntax is:\n /delete user_ID password')
                     return
                 user_ID = params_bot[1]
                 pw = params_bot[2]
@@ -119,27 +203,23 @@ If you want to be informed when the temperature becomes out of range, please set
                 params_bot = command.split(' ')
 
                 if len(params_bot) < 2:
-                    self.bot.sendMessage(chat_id, 'Correct syntax is: /check user_ID')
+                    self.bot.sendMessage(chat_id, 'Correct syntax is:\n /check user_ID password fridge_ID')
                     return
 
                 try:
                     ID = params_bot[1]
+                    pw = params_bot[2]
+                    fridge_ID = params_bot[3]
 
-                    #Asking for the ID of the fridge associated to the user_ID
-                    r = requests.get('http://' + self.catalogIP + ':' + self.catalogport + '/user_fridge?User_ID=' + str(ID))
+                    #Check if the user has the permission to register the fridge
+                    r = requests.get('http://' + self.catalogIP + ':' + self.catalogport + '/user?ID=' + str(ID))
                     r.raise_for_status()
-                    fridge_ID = r.json()
-
-                    #Check if the chat_id has the permission to access to the information of user_ID
-                    r2 = requests.get('http://' + self.catalogIP + ':' + self.catalogport + '/user?ID=' + str(ID))
-                    r2.raise_for_status()
-                    detail_user = r2.json()
+                    detail_user = r.json()
                     user = json.loads(detail_user['user'])
-                    ID_bot = user['ID_bot']
-                    if (str(ID_bot) != str(chat_id)):
-                        self.bot.sendMessage(chat_id, "You can't check the fridge. Please try another user_ID.")
+                    password = user['password']
+                    if (str(password) != str(pw)):
+                        self.bot.sendMessage(chat_id, "You can't apply any modification on this user. Please try another user_ID or insert the correct password.")
                         return
-
 
                 except requests.HTTPError as err:
                     self.bot.sendMessage(chat_id, 'An error happened. Correct syntax is: /check user_ID. Please, try again.')
@@ -156,15 +236,68 @@ If you want to be informed when the temperature becomes out of range, please set
 
 
 
+            elif command.startswith('/add_product'):
+                params_bot = command.split(' ')
+
+                if len(params_bot) < 3:
+                    self.bot.sendMessage(chat_id, 'Correct syntax is: /add_product fridge_ID product_name expiration_date. Please insert expiration date as dd/mm/yyyy')
+                    return
+
+                fridge_ID = params_bot[1]
+                product_ID = params_bot[2]
+                exp_date = params_bot[3]
+
+                try:
+                    #Get the ip and port of ProductAdaptorWS
+                    r = requests.get('http://' + self.catalogIP + ':' + self.catalogport + "web_service?Name=" + "ProductAdaptorWS")
+                    dict = r.json()
+                    IP = dict['URL']['IP']
+                    port = dict['URL']['port']
+                    url_WS = "http://" + str(IP) + ":" + str(port) + "/"
+
+                    expiration_date = exp_date.split('/')
+                    day = expiration_date[0]
+                    month = expiration_date[1]
+                    year = expiration_date[2]
+                    body = json.dumps({"day":day, "month":month, "year":year})
+
+                    r2 = requests.post(str(url_WS) + "add_expiration/Fridge_ID" +str (fridge_ID) + "&Product_ID=" + str(product_ID), data=body)
+
+                except requests.HTTPError as err:
+                    self.bot.sendMessage(chat_id, 'An error happened. Please, try again.')
+                    return
+
+                self.bot.sendMessage(chat_id, "The expiration date of the " + str(product_ID) + " has been updated.")
+
+
+            elif command.startswith('/add_wasted'):
+                params_bot = command.split(' ')
+
+                if len(params_bot) < 3:
+                    self.bot.sendMessage(chat_id, 'Correct syntax is: /add_wasted fridge_ID product_name.')
+                    return
+
+                fridge_ID = params_bot[1]
+                product_ID = params_bot[2]
+
+                keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                     [InlineKeyboardButton(text='Wasted', callback_data='wastedProduct_' + str(fridge_ID) +'_' + str(product_ID)) ,
+                     InlineKeyboardButton(text='Consumed', callback_data='consumedProduct_'+ str(fridge_ID) +'_' + str(product_ID))]])
+
+                msg = self.bot.sendMessage(chat_id, 'Did you eat or waste the product ' + str(product_ID) +'?', reply_markup=keyboard)
+
+
+
             elif command.startswith('/alarm'):
                 params_bot = command.split(' ')
 
                 if len(params_bot) < 3:
-                    self.bot.sendMessage(chat_id, 'Correct syntax is: /alarm user_ID password')
+                    self.bot.sendMessage(chat_id, 'Correct syntax is:\n /alarm user_ID password fridge_ID')
                     return
 
                 user_ID = params_bot[1]
                 pw = params_bot[2]
+                fridge_ID = params_bot[3]
 
                 try:
                     #Check if the user has the persmission to register itself with that user_ID
@@ -177,10 +310,6 @@ If you want to be informed when the temperature becomes out of range, please set
                         self.bot.sendMessage(chat_id, "You can't make modification on this user. Please try another user_ID or insert the correct password.")
                         return
 
-                    #Asking for the ID of the fridge associated to the user_ID
-                    r2 = requests.get('http://' + self.catalogIP + ':' + self.catalogport + '/user_fridge?User_ID=' + str(user_ID))
-                    r2.raise_for_status()
-                    fridge_ID = r2.json()
 
                 except requests.HTTPError as err:
                     self.bot.sendMessage(chat_id, 'An error happened. Correct syntax is: /check user_ID. Please, try again.')
@@ -197,6 +326,7 @@ If you want to be informed when the temperature becomes out of range, please set
         query_id, chat_id, query_data = telepot.glance(msg, flavor='callback_query')
         query = query_data.split('_')[0]
         fridge_ID = query_data.split('_')[1]
+
 
         URL = 'http://' + self.catalogIP + ':' + self.catalogport
 
@@ -280,6 +410,42 @@ If you want to be informed when the temperature becomes out of range, please set
 
             self.bot.sendMessage(chat_id, "List of wasted product: \n" + str(list_was_products))
 
+        elif query == 'wastedProduct':
+            product_ID = query_data.split('_')[2]
+            try:
+                #Get the ip and port of ProductAdaptorWS
+                r = requests.get('http://' + self.catalogIP + ':' + self.catalogport + "web_service?Name=" + "ProductAdaptorWS")
+                dict = r.json()
+                IP = dict['URL']['IP']
+                port = dict['URL']['port']
+                url_WS = "http://" + str(IP) + ":" + str(port) + "/"
+
+                body = {"status":"wasted"}
+
+                r2 = requests.post(str(url_WS) + "add_wasted/Fridge_ID" +str (fridge_ID) + "&Product_ID=" + str(product_ID), data=body)
+
+            except:
+                self.bot.sendMessage(chat_id, 'An error happened. Try again.')
+                return
+
+        elif query == 'consumedProduct':
+            product_ID = query_data.split('_')[2]
+            try:
+                #Get the ip and port of ProductAdaptorWS
+                r = requests.get('http://' + self.catalogIP + ':' + self.catalogport + "web_service?Name=" + "ProductAdaptorWS")
+                dict = r.json()
+                IP = dict['URL']['IP']
+                port = dict['URL']['port']
+                url_WS = "http://" + str(IP) + ":" + str(port) + "/"
+
+                body = {"status":"consumed"}
+
+                r2 = requests.post(str(url_WS) + "add_wasted/Fridge_ID" +str (fridge_ID) + "&Product_ID=" + str(product_ID), data=body)
+
+            except:
+                self.bot.sendMessage(chat_id, 'An error happened. Try again.')
+                return
+
         elif query == 'on':
             try:
                 #Changing the status of the alarm on the Catalog
@@ -308,6 +474,12 @@ If you want to be informed when the temperature becomes out of range, please set
 
 
 if __name__ == '__main__':
+
+    try:
+        import urllib3.contrib.pyopenssl
+        urllib3.contrib.pyopenssl.inject_into_urllib3()
+    except ImportError:
+        pass
 
     Fridge_Bot = MyGreenFridgeBot("botconfig.txt")
 

@@ -93,8 +93,9 @@ class ProductsControlMQTT:
 
 	def myPublish (self, topic, msg):
 		# if needed, you can do some computation or error-check before publishing
-		print ("Publishing message: " + str(msg))
-		print("with topic: " + str(topic))
+		#print ("Publishing message: " + str(msg))
+		#print("with topic: " + str(topic))
+		print("Publishing message with topic: " + str(topic))
 		# publish a message with a certain topic
 		self._paho_mqtt.publish(topic, msg, 2)
 

@@ -47,6 +47,8 @@ class BarcodeConversionREST(object):
             # retrieve only the product's name and brand
             product_name = product["product_name"]
             brand = product["brands"]
+            product_name = product_name.replace(" ", "-")
+            brand = brand.replace(" ", "-")
         else:
             product_name = None
             brand = None
