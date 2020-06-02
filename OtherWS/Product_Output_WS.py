@@ -38,8 +38,8 @@ class ProductOutputREST(object):
 			# richiesta BOT
 
 			r2 = requests.get('https://api.telegram.org/bot' + self.bot_Token + '/sendMessage?chat_id=' + str(ID_bot) +
-										  '&text=' + 'The product ' + str(self.product_ID) + ' has been removed from the fridge ' + str(Fridge_ID) + 
-										  '. Please write /delete_product and specify if it is wasted or not.')
+										  '&text=' + 'The product ' + str(product_ID) + ' has been removed from the fridge ' + str(Fridge_ID) + 
+										  '. Please write /add_wasted and specify if it is wasted or not.')
 
 
 		# # richiedere exp_date mediante BOT
@@ -64,7 +64,7 @@ class RegistrationThread(threading.Thread):
 			threading.Thread.__init__(self)
 
 		def run(self):
-			url = "http://"+ catalogIP + ":"+ catalogPort + "/"
+			url = "http://"+ catalogIP + catalogPort
 			while True:
 
 				### register BarcodeConversionREST as a web service
@@ -98,15 +98,15 @@ if __name__ == '__main__':
 	devPort = 8691 #inserire numero porta per prod Output ws
 
 	try:
-		configFile = open("configProdInput.txt", "r")
+		configFile = open("Configuration.txt", "r")
 		configJson = configFile.read()
 		configDict = json.loads(configJson)
 		configFile.close()
 	except OSError:
 		sys.exit("ERROR: cannot open the configuration file.")
 
-	catalogIP = configDict["catalogIP"]
-	catalogPort = configDict["catalogPort"]
+	catalogIP = configDict["catalog_IP"]
+	catalogPort = configDict["catalog_port"]
 	catalog_URL = "http://" + catalogIP + catalogPort
 
 	print("Catalog IP is: " + catalogIP)

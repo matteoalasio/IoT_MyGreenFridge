@@ -376,11 +376,11 @@ class Catalog_REST:
                 raise cherrypy.HTTPError(404, info_updated)
             return info_updated
 
-        #/product/Fridge_ID?Prod_ID=<IDProd>
+        #/product?Fridge_ID=<Fridge_ID>&Prod_ID=<IDProd>
         # Delete a product for a specified fridge
         if uri[0] == 'product':
             product_ID = params['Prod_ID']
-            fridge_ID = (uri[1])
+            fridge_ID = (params['Fridge_ID'])
             info_updated = self.catalog.delete_product(fridge_ID, product_ID)
             if info_updated == "Product not found!":
                 raise cherrypy.HTTPError(404, info_updated)

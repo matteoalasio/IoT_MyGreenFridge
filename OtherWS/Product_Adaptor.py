@@ -122,7 +122,7 @@ class ProductsAdaptorMQTT:
 
 			# GET al barcode conversion url: - /product?EAN=<ean>
 
-			r0 = requests.get(url_barcode_WS + "product?EAN=" + str(message))
+			r0 = requests.get(url_barcode_WS + "product?EAN=" + str(message["EAN0"]))
 			prod_in = r0.json() #contiene il nome e la marca del prodotto inserito
 			print(prod_in)        #prod_in = {"product": product_name, "brand": brand}
 
@@ -153,23 +153,24 @@ class ProductsAdaptorMQTT:
 			message = json.loads(msg.payload.decode("utf-8"))
 # 			EAN_IN = (msg.payload)
 			print(message)
+			print(message["EAN1"])
 
 			# GET al barcode conversion url: - /product?EAN=<ean>
 
-			r0 = requests.get(url_barcode_WS + "product?EAN=" + str(message))
-			prod_out = r0.json() #contiene il nome e la marca del prodotto inserito
+			r01 = requests.get(url_barcode_WS + "product?EAN=" + str(message["EAN1"]))
+			prod_out = r01.json() #contiene il nome e la marca del prodotto inserito
 			print(prod_out)         #dictOutput = {"product": product_name, "brand": brand}
 
 			# POST AL CATALOG per rimuovere prodotto individuato
-			# - /product/Fridge_ID?Prod_ID=<IDProd> : Delete a product for a specified fridge.
+			# - #/product?Fridge_ID=<Fridge_ID>&Prod_ID=<IDProd> : Delete a product for a specified fridge.
 
-			catalog_url_delete = "http://localhost" + catalog_Port + fridgeID + "?Prod_ID=" + prod_out["product"]
-			r1 = requests.delete(catalog_url_delete)
+			catalog_url_delete = "http://localhost" + catalog_Port + "product?Fridge_ID=" + fridgeID + "&Prod_ID=" + prod_out["product"]
+			r11 = requests.delete(catalog_url_delete)
 			print("prodotto rimosso dal frigo")
 
 			# GET AL PROD_OUtPUT_WS per ottenere status
 
-			r2 = requests.get(url_product_output_WS  + "delete_product?FridgeID=" + fridgeID + "&userID=" + userID + "&product_name=" + prod_out["product"] + "&brands=" + prod_out["brand"])
+			r21 = requests.get(url_product_output_WS  + "delete_product?FridgeID=" + fridgeID + "&userID=" + userID + "&product_name=" + prod_out["product"] + "&brands=" + prod_out["brand"])
 
 			print("get al ws fatta")
 

@@ -249,7 +249,7 @@ To be informed when the temperature becomes out of range, please set it with /al
 
                 try:
                     #Get the ip and port of ProductAdaptorWS
-                    r = requests.get('http://' + self.catalogIP + ':' + self.catalogport + "web_service?Name=" + "ProductAdaptorWS")
+                    r = requests.get('http://' + self.catalogIP + ':' + self.catalogport + "/web_service?Name=" + "ProductAdaptorWS")
                     dict = r.json()
                     IP = dict['URL']['IP']
                     port = dict['URL']['port']
@@ -414,7 +414,7 @@ To be informed when the temperature becomes out of range, please set it with /al
             product_ID = query_data.split('_')[2]
             try:
                 #Get the ip and port of ProductAdaptorWS
-                r = requests.get('http://' + self.catalogIP + ':' + self.catalogport + "web_service?Name=" + "ProductAdaptorWS")
+                r = requests.get('http://' + self.catalogIP + ':' + self.catalogport + "/web_service?Name=" + "ProductAdaptorWS")
                 dict = r.json()
                 IP = dict['URL']['IP']
                 port = dict['URL']['port']
@@ -422,17 +422,18 @@ To be informed when the temperature becomes out of range, please set it with /al
 
                 body = {"status":"wasted"}
 
-                r2 = requests.post(str(url_WS) + "add_wasted/Fridge_ID" +str (fridge_ID) + "&Product_ID=" + str(product_ID), data=body)
+                r2 = requests.post(str(url_WS) + "add_wasted?Fridge_ID=" +str (fridge_ID) + "&Product_ID=" + str(product_ID), data=body)
 
             except:
                 self.bot.sendMessage(chat_id, 'An error happened. Try again.')
                 return
+            self.bot.sendMessage(chat_id, 'The product has been successfully registered as wasted.')
 
         elif query == 'consumedProduct':
             product_ID = query_data.split('_')[2]
             try:
                 #Get the ip and port of ProductAdaptorWS
-                r = requests.get('http://' + self.catalogIP + ':' + self.catalogport + "web_service?Name=" + "ProductAdaptorWS")
+                r = requests.get('http://' + self.catalogIP + ':' + self.catalogport + "/web_service?Name=" + "ProductAdaptorWS")
                 dict = r.json()
                 IP = dict['URL']['IP']
                 port = dict['URL']['port']
@@ -440,11 +441,13 @@ To be informed when the temperature becomes out of range, please set it with /al
 
                 body = {"status":"consumed"}
 
-                r2 = requests.post(str(url_WS) + "add_wasted/Fridge_ID" +str (fridge_ID) + "&Product_ID=" + str(product_ID), data=body)
+                r2 = requests.post(str(url_WS) + "add_wasted?Fridge_ID=" +str (fridge_ID) + "&Product_ID=" + str(product_ID), data=body)
 
             except:
                 self.bot.sendMessage(chat_id, 'An error happened. Try again.')
                 return
+            
+            self.bot.sendMessage(chat_id, 'The product has been successfully removed from the fridge.')
 
         elif query == 'on':
             try:
@@ -474,12 +477,6 @@ To be informed when the temperature becomes out of range, please set it with /al
 
 
 if __name__ == '__main__':
-
-    try:
-        import urllib3.contrib.pyopenssl
-        urllib3.contrib.pyopenssl.inject_into_urllib3()
-    except ImportError:
-        pass
 
     Fridge_Bot = MyGreenFridgeBot("botconfig.txt")
 
