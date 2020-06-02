@@ -153,34 +153,30 @@ if __name__ == "__main__":
     except requests.RequestException as err:
         sys.exit("ERROR: cannot retrieve the info about the fridges.")
     
-    print ("This is the list of fridges:")
-    print (fridges)
-    n_fridges = len(fridges)
-    print ("It contains a number of fridges equal to: " + str(n_fridges))
-
-    i=0
+    i = 0 
     for f in fridges:
-        fridgeID = f["fridgeID"]
-        fridgeAPI = f["API"]
-        print(fridgeID)
-        print(fridgeAPI)
-        catalogURL = catalogURL+"/wasted?Fridge_ID="+fridgeID
-        # Taking the wasted products here
-        try:
-            r2 = requests.get(catalogURL)
-            wasted_json = r2.json()
-            value = len(wasted_json["Wasted_products"])
-            data = urllib.request.urlopen("https://api.thingspeak.com/update?api_key="+fridgeAPI+"&field3="+str(value))
-            print ("Wasted products updated on ThingSpeak")
-        except requests.RequestException as err:
-            sys.exit("ERROR: did not find the list of wasted products")
+        if f["user"] == userID:
+            fridgeID = f["fridgeID"]
+            fridgeAPI = f["API"]
+            print(fridgeID)
+            print(fridgeAPI)
+            catalogURL = catalogURL+"/wasted?Fridge_ID="+fridgeID
+            # Taking the wasted products here
+            try:
+                r2 = requests.get(catalogURL)
+                wasted_json = r2.json()
+                value = len(wasted_json["Wasted_products"])
+                data = urllib.request.urlopen("https://api.thingspeak.com/update?api_key="+fridgeAPI+"&field3="+str(value))
+                print ("Wasted products updated on ThingSpeak")
+            except requests.RequestException as err:
+                sys.exit("ERROR: did not find the list of wasted products")
 
-        client_ID = "client_"+str(i)
-        i = i+1
-        
-        tsdm = ThingSpeakDataManager(client_ID, userID, fridgeID, brokerIP, brokerPort)
-        tsdm.start()
-        tempThread = TemperatureThread(tsdm, userID, fridgeID, fridgeAPI, catalogURL)
-        tempThread.start()
-        humThread = HumidityThread(tsdm, userID, fridgeID, fridgeAPI, catalogURL)
-        humThread.start()
+            client_ID = "client_"+str(i)
+            i = i+1
+            
+            tsdm = ThingSpeakDataManager(client_ID, userID, fridgeID, brokerIP, brokerPort)
+            tsdm.start()
+            tempThread = TemperatureThread(tsdm, userID, fridgeID, fridgeAPI, catalogURL)
+            tempThread.start()
+            humThread = HumidityThread(tsdm, userID, fridgeID, fridgeAPI, catalogURL)
+            humThread.start()
