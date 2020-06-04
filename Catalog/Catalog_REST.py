@@ -24,7 +24,7 @@ GET:
 """
 POST:
 - /add_fridge/ : Registration of a new fridge
-    The body required is : {"ID":"", "user":""}
+    he body required is : {"ID":"", "user":"", "API":""}
 - /add_user/ : Registration of a new user
     The body required is {"ID":"", "password":""}
 - /add_sensor?Fridge_ID=<IDFridge> : Add a sensor to the correspondant Fridge
@@ -211,7 +211,7 @@ class Catalog_REST:
 
         #/add_fridge/
         # Registration of a new fridge
-        # The body required is : {"ID":"", "user":""}
+        # The body required is : {"ID":"", "user":"", "API":""}
         if uri[0] == 'add_fridge':
             info_added = self.catalog.add_fridge(body)
             return info_added

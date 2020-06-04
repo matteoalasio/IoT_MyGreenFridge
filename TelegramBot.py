@@ -81,14 +81,15 @@ To be informed when the temperature becomes out of range, please set it with /al
             elif command.startswith ('/add_fridge'):
 
                 params_bot = command.split(' ')
-                if len(params_bot) < 4:
-                    self.bot.sendMessage(chat_id, 'The correct syntax is:\n /add_fridge user_ID password fridge_ID')
+                if len(params_bot) < 5:
+                    self.bot.sendMessage(chat_id, 'The correct syntax is:\n /add_fridge user_ID password fridge_ID fridge_API')
                     return
                 ID = params_bot[1]
                 pw = params_bot[2]
                 fridge_ID = params_bot[3]
+                fridge_API = params_bot[4]
 
-                payload = {'ID': fridge_ID, 'user': ID}
+                payload = {'ID': fridge_ID, 'user': ID, 'API': fridge_API}
 
                 URL = 'http://' + self.catalogIP + ':' + self.catalogport + '/add_fridge/'
                 try:
@@ -458,7 +459,7 @@ To be informed when the temperature becomes out of range, please set it with /al
             except:
                 self.bot.sendMessage(chat_id, 'An error happened. Try again.')
                 return
-            
+
             self.bot.sendMessage(chat_id, 'The product has been successfully removed from the fridge.')
 
         elif query == 'on':

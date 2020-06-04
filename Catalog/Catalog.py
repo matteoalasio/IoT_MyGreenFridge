@@ -213,7 +213,7 @@ class Catalog(object):
 
         for user in dict['users']:
             if user['ID'] == fridge_user['user']:
-                dict['fridges'].append({'ID': fridge_user['ID'], 'user': fridge_user['user'],
+                dict['fridges'].append({'ID': fridge_user['ID'], 'user': fridge_user['user'], 'API':fridge_user['API']
                                     'sensors': [],
                                     'products': [],
                                     'wasted': [],
