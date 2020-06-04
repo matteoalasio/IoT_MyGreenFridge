@@ -8,16 +8,16 @@ class FreeBoard:
 	exposed = True
 
 	def GET(self, *uri, **params):
-		if (len(uri) == 2):
-			index = "index_"+str(uri[0])+"_"+str(uri[1])+".html"
-			index_file = open(index)
-			return index_file.read()
-		else:
-			raise cherrypyHTTPError(404, "Error, you must specify user_ID and fridge_ID in the GET request")
+
+		userID = params["userID"]
+		fridgeID = params["fridgeID"]
+		index = "index_"+userID+"_"+fridgeID+".html"
+		index_file = open(index)
+		return index_file.read()
 
 	def POST(self, *uri, **params):
 		json_string = params['json_string']
-		file = open("dashboard/dashboard.json", 'w')
+		file = open("dashboard/dashboard.json", 'w+')
 		file.write(json_string)
 
 if __name__ == '__main__':

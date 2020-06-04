@@ -27,7 +27,7 @@ class TemperatureAlarmThread(threading.Thread):
 
             # Get the IP where to find the resource
             r3 = requests.get(
-                catalog_URL + "web_service?Name=" + "FridgeStatusWS")
+                catalog_URL + "web_service?Name=" + "FridgeStatusAdaptorWS")
             dict = r3.json()
             IP = dict['URL']['IP']
             #port = dict['URL']['port']

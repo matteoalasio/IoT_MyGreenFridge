@@ -38,13 +38,13 @@ class ThingSpeakDataManager:
 
         self._paho_mqtt.loop_stop()
         self._paho_mqtt.disconnect()
-    
+
     def mySubscribe(self, topic):
         #print("Subscribing to %s" %(topic))
         self._paho_mqtt.subscribe(topic, 2)
 
     def myOnMessageReceived (self, paho_mqtt, userdata, msg):
-        
+
         message_received = json.loads(msg.payload.decode("utf-8"))
         message = int(((message_received["e"])[0])["v"])
         print("A message has been received.")
@@ -96,7 +96,7 @@ class HumidityThread(threading.Thread):
         self.fridgeID = fridgeID
         self.fridgeAPI = fridgeAPI
         self.catalog_URL = catalog_URL
-    
+
     def run(self):
         while True:
             topic_h = "MyGreenFridge/"+str(self.userID)+"/"+str(self.fridgeID)+"/humidity"
@@ -148,35 +148,36 @@ if __name__ == "__main__":
 
     #fridges = []
     try:
-        r = requests.get(catalogURL + "/"+userID+"/fridges")
-        fridges = r.json()
+        r2 = requests.get(catalogURL + "/fridges")
+        fridges = r2.json()
     except requests.RequestException as err:
         sys.exit("ERROR: cannot retrieve the info about the fridges.")
-    
-    i = 0 
-    for f in fridges:
-        if f["user"] == userID:
-            fridgeID = f["fridgeID"]
-            fridgeAPI = f["API"]
-            print(fridgeID)
-            print(fridgeAPI)
-            catalogURL = catalogURL+"/wasted?Fridge_ID="+fridgeID
-            # Taking the wasted products here
-            try:
-                r2 = requests.get(catalogURL)
-                wasted_json = r2.json()
-                value = len(wasted_json["Wasted_products"])
-                data = urllib.request.urlopen("https://api.thingspeak.com/update?api_key="+fridgeAPI+"&field3="+str(value))
-                print ("Wasted products updated on ThingSpeak")
-            except requests.RequestException as err:
-                sys.exit("ERROR: did not find the list of wasted products")
 
-            client_ID = "client_"+str(i)
-            i = i+1
-            
-            tsdm = ThingSpeakDataManager(client_ID, userID, fridgeID, brokerIP, brokerPort)
-            tsdm.start()
-            tempThread = TemperatureThread(tsdm, userID, fridgeID, fridgeAPI, catalogURL)
-            tempThread.start()
-            humThread = HumidityThread(tsdm, userID, fridgeID, fridgeAPI, catalogURL)
-            humThread.start()
+    i = 0
+    for f in fridges['fridges']:
+
+        userID = f["user"]
+        fridgeID = f["ID"]
+        fridgeAPI = f["API"]
+        print(fridgeID)
+        print(fridgeAPI)
+
+        # Taking the wasted products here
+        try:
+            r3 = requests.get(catalogURL+"/wasted?Fridge_ID="+fridgeID)
+            wasted_json = r3.json()
+            value = len(wasted_json["Wasted_products"])
+            data = urllib.request.urlopen("https://api.thingspeak.com/update?api_key="+fridgeAPI+"&field3="+str(value))
+            print ("Wasted products updated on ThingSpeak")
+        except requests.RequestException as err:
+            sys.exit("ERROR: did not find the list of wasted products")
+
+        client_ID = "client_"+str(i)
+        i = i+1
+
+        tsdm = ThingSpeakDataManager(client_ID, userID, fridgeID, brokerIP, brokerPort)
+        tsdm.start()
+        tempThread = TemperatureThread(tsdm, userID, fridgeID, fridgeAPI, catalogURL)
+        tempThread.start()
+        humThread = HumidityThread(tsdm, userID, fridgeID, fridgeAPI, catalogURL)
+        humThread.start()
