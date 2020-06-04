@@ -45,10 +45,14 @@ class ProductsAdaptorREST(object):
 			product_ID = params['Product_ID']
 			fridge_ID = params['Fridge_ID']
 			print("okokok")
+			print(catalog_URL)
+			print(json.dumps(body))
+			#/add_expiration?Fridge_ID=<IDFridge>&Product_ID=<IDProduct>
 			r3 = requests.post(catalog_URL + "add_expiration?Fridge_ID=" + fridge_ID + "&Product_ID=" + product_ID, data=json.dumps(body))
 			print("data di scadenza aggiunta al frigo")
 
 		if uri[0] == 'add_wasted':
+			print("ciaone")
 			product_ID = params['Product_ID']
 			fridge_ID = params['Fridge_ID']
 			if body["status"] == "wasted":
@@ -56,6 +60,7 @@ class ProductsAdaptorREST(object):
 				print("okokok")
 				r3 = requests.post(catalog_URL + "add_wasted?Fridge_ID=" + fridge_ID, data=json.dumps(corpo))
 				print("prodotto rimosso")
+			return ("ciao")
 
 	def PUT (self, *uri, **params):
 		pass

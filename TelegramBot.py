@@ -8,6 +8,7 @@ from telepot.namedtuple import InlineKeyboardMarkup, InlineKeyboardButton
 import re
 import threading
 import urllib3
+import sys
 
 
 #chat_id is a unique identifier for the target chat or username of the target channel (in the format @channelusername)
@@ -261,7 +262,7 @@ To be informed when the temperature becomes out of range, please set it with /al
                     year = expiration_date[2]
                     body = json.dumps({"day":day, "month":month, "year":year})
 
-                    r2 = requests.post(str(url_WS) + "add_expiration/Fridge_ID" +str (fridge_ID) + "&Product_ID=" + str(product_ID), data=body)
+                    r2 = requests.post(str(url_WS) + "add_expiration?Fridge_ID=" +str (fridge_ID) + "&Product_ID=" + str(product_ID), data=body)
 
                 except requests.HTTPError as err:
                     self.bot.sendMessage(chat_id, 'An error happened. Please, try again.')
@@ -377,12 +378,19 @@ To be informed when the temperature becomes out of range, please set it with /al
                 for product in products:
                     print ("Sei qui!")
                     expirationdate = product['Exp_date']
-                    listed_product = str(i) +") " + str(product['product_ID']) + " " + str(product['brand']) + " with expiration date: " + str(expirationdate['day']) + '/' + str(expirationdate['month']) + '/' + str(expirationdate['year']) + " "
-                    list_products.append(listed_product)
+                    if expirationdate:
+                        listed_product = str(i) +") " + str(product['product_ID']) + " " + str(product['brand']) + " with expiration date: " + str(expirationdate['day']) + '/' + str(expirationdate['month']) + '/' + str(expirationdate['year']) + " "
+                        list_products.append(listed_product)
+                    else:
+                        listed_product = str(i) +") " + str(product['product_ID']) + " " + str(product['brand'])
+                        list_products.append(listed_product)
                     i=i+1
 
             except:
+                e = sys.exc_info()[0]
+                print(e)
                 self.bot.sendMessage(chat_id, 'An error happened. Try again.')
+
                 return
 
             self.bot.sendMessage(chat_id, "List of available product: \n"  + str(list_products))
@@ -412,6 +420,7 @@ To be informed when the temperature becomes out of range, please set it with /al
 
         elif query == 'wastedProduct':
             product_ID = query_data.split('_')[2]
+
             try:
                 #Get the ip and port of ProductAdaptorWS
                 r = requests.get('http://' + self.catalogIP + ':' + self.catalogport + "/web_service?Name=" + "ProductAdaptorWS")
@@ -419,10 +428,13 @@ To be informed when the temperature becomes out of range, please set it with /al
                 IP = dict['URL']['IP']
                 port = dict['URL']['port']
                 url_WS = "http://" + str(IP) + ":" + str(port) + "/"
+                print(url_WS)
 
-                body = {"status":"wasted"}
+                body = json.dumps({"status":"wasted"})
 
                 r2 = requests.post(str(url_WS) + "add_wasted?Fridge_ID=" +str (fridge_ID) + "&Product_ID=" + str(product_ID), data=body)
+                #headers = {'Content-Type':'text/html'}
+                #r2 = requests.request("POST", str(url_WS), headers=headers)
 
             except:
                 self.bot.sendMessage(chat_id, 'An error happened. Try again.')
@@ -439,7 +451,7 @@ To be informed when the temperature becomes out of range, please set it with /al
                 port = dict['URL']['port']
                 url_WS = "http://" + str(IP) + ":" + str(port) + "/"
 
-                body = {"status":"consumed"}
+                body = json.dumps({"status":"consumed"})
 
                 r2 = requests.post(str(url_WS) + "add_wasted?Fridge_ID=" +str (fridge_ID) + "&Product_ID=" + str(product_ID), data=body)
 
