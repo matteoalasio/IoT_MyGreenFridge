@@ -213,7 +213,9 @@ class Catalog(object):
 
         for user in dict['users']:
             if user['ID'] == fridge_user['user']:
-                dict['fridges'].append({'ID': fridge_user['ID'], 'user': fridge_user['user'], 'API':fridge_user['API']
+                dict['fridges'].append({'ID': fridge_user['ID'], 'user': fridge_user['user'],
+                                    'API':fridge_user['API'],
+                                    'channel':fridge_user['channel'],
                                     'sensors': [],
                                     'products': [],
                                     'wasted': [],
@@ -227,6 +229,7 @@ class Catalog(object):
                 file.close()
                 return "The fridge has been associated with the user."
         return "User not found!"
+
 
     # Update a fridge that already exists
     def update_fridge(self, updated_fridge):

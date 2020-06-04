@@ -81,15 +81,16 @@ To be informed when the temperature becomes out of range, please set it with /al
             elif command.startswith ('/add_fridge'):
 
                 params_bot = command.split(' ')
-                if len(params_bot) < 5:
-                    self.bot.sendMessage(chat_id, 'The correct syntax is:\n /add_fridge user_ID password fridge_ID fridge_API')
+                if len(params_bot) < 6:
+                    self.bot.sendMessage(chat_id, 'The correct syntax is:\n /add_fridge user_ID password fridge_ID API_ThingSpeak Channel_ThingSpeak')
                     return
                 ID = params_bot[1]
                 pw = params_bot[2]
                 fridge_ID = params_bot[3]
                 fridge_API = params_bot[4]
+                fridge_channel = params_bot[5]
 
-                payload = {'ID': fridge_ID, 'user': ID, 'API': fridge_API}
+                payload = {'ID': fridge_ID, 'user': ID, 'API': fridge_API, 'channel': fridge_channel}
 
                 URL = 'http://' + self.catalogIP + ':' + self.catalogport + '/add_fridge/'
                 try:
