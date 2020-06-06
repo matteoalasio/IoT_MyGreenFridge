@@ -296,24 +296,34 @@ if __name__ == '__main__':
     devIP = s.getsockname()[0]
     devPort = 8082
 
-    # read configuration file
+    # read system configuration file
     try:
-        configFile = open("configDeviceConnector.txt", "r")
-        configJson = configFile.read()
-        configDict = json.loads(configJson)
-        configFile.close()
+        configSystemFile = open("../configSystem.json", "r")
+        configSystemJson = configSystemFile.read()
+        configSystemDict = json.loads(configSystemJson)
+        configSystemFile.close()
     except OSError:
-        sys.exit("ERROR: cannot open the configuration file.")
+        sys.exit("ERROR: cannot open the system configuration file.")
 
-    userID = configDict["userID"]
-    catalogIP = configDict["catalogIP"]
-    catalogPort = configDict["catalogPort"]
-    fridgeID = configDict["fridgeID"]
-    temperatureID = configDict["temperatureID"]
-    humidityID = configDict["humidityID"]
-    camera0ID = configDict["camera0ID"]
-    camera1ID = configDict["camera1ID"]
-    password = configDict["password"]
+    # read DeviceConnector configuration file
+    try:
+        configDevConFile = open("configDeviceConnector.json", "r")
+        configDevConJson = configDevConFile.read()
+        configDevConDict = json.loads(configDevConJson)
+        configDevConFile.close()
+    except OSError:
+        sys.exit("ERROR: cannot open the DeviceConnector configuration file.")
+
+    
+    catalogIP = configSystemDict["catalogIP"]
+    catalogPort = configSystemDict["catalogPort"]
+
+    userID = configDevConDict["userID"]
+    fridgeID = configDevConDict["fridgeID"]
+    temperatureID = configDevConDict["temperatureID"]
+    humidityID = configDevConDict["humidityID"]
+    camera0ID = configDevConDict["camera0ID"]
+    camera1ID = configDevConDict["camera1ID"]
 
     print("Catalog IP is: " + catalogIP)
     print("Catalog port is " + catalogPort)
@@ -331,7 +341,7 @@ if __name__ == '__main__':
 
 
     # instantiate a DeviceConnector object
-    deviceConnector = DeviceConnector(devIP, devPort, userID, fridgeID, temperatureID, humidityID, camera0ID, camera1ID, password)
+    deviceConnector = DeviceConnector(devIP, devPort, userID, fridgeID, temperatureID, humidityID, camera0ID, camera1ID)
 
     clientID = "DeviceConnectorWS_"+ deviceConnector.userID + "_" + deviceConnector.fridgeID
 
