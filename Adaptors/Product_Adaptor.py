@@ -72,13 +72,14 @@ class ProductsAdaptorREST(object):
 
 class ProductsAdaptorMQTT:
 
-	def __init__(self, clientID , userID , fridgeID ,  broker , port , catalog_Port , url_barcode_WS , url_product_input_WS , url_product_output_WS):
+	def __init__(self, clientID , userID , fridgeID ,  broker , port , catalog_IP, catalog_Port , url_barcode_WS , url_product_input_WS , url_product_output_WS):
 
 		self.broker = broker
 		self.port = port  #porta broker
 		self.clientID = clientID
 		self.userID = userID
 		self.fridgeID = fridgeID
+		self.catalog_IP = catalog_IP
 		self.catalog_Port = catalog_Port
 		self.url_barcode_WS = url_barcode_WS
 		self.url_product_input_WS = url_product_input_WS
@@ -115,7 +116,7 @@ class ProductsAdaptorMQTT:
 		# prod_in_port = "8690"
 		# prod_out_port = "8691"
 
-		if (msg.topic == "MyGreenFridge/" + userID + "/" + fridgeID + "/EAN0"):
+		if (msg.topic == "MyGreenFridge/" + self.userID + "/" + self.fridgeID + "/EAN0"):
 
 			print("prodotto da inserire ricevuto")
 
@@ -127,7 +128,7 @@ class ProductsAdaptorMQTT:
 
 			# GET al barcode conversion url: - /product?EAN=<ean>
 
-			r0 = requests.get(url_barcode_WS + "product?EAN=" + str(message["EAN0"]))
+			r0 = requests.get(self.url_barcode_WS + "product?EAN=" + str(message["EAN0"]))
 			prod_in = r0.json() #contiene il nome e la marca del prodotto inserito
 			print(prod_in)        #prod_in = {"product": product_name, "brand": brand}
 
@@ -137,20 +138,20 @@ class ProductsAdaptorMQTT:
 
 			body = {"product_ID": prod_in["product"] , "brand": prod_in["brand"]}
 
-			catalog_url = "http://localhost" + catalog_Port
-			r1 = requests.post(catalog_url + "add_product?Fridge_ID=" + fridgeID, data = json.dumps(body))
+			catalog_url = "http://" + self.catalog_IP + ":" + self.catalog_Port + "/"
+			r1 = requests.post(catalog_url + "add_product?Fridge_ID=" + self.fridgeID, data = json.dumps(body))
 			print("prodotto aggiunto al catalog")
 
 			# GET AL PROD_INPUT_WS per ricavare expiratio_date
 			# /insert_product?product_name=<name>&brands=<brand>
 
-			r2 = requests.get(url_product_input_WS  + "insert_product?FridgeID=" + fridgeID + "&userID=" + userID + "&product_name=" + prod_in["product"] + "&brands=" + prod_in["brand"])
+			r2 = requests.get(self.url_product_input_WS  + "insert_product?FridgeID=" + self.fridgeID + "&userID=" + self.userID + "&product_name=" + prod_in["product"] + "&brands=" + prod_in["brand"])
 
 			print("get al ws fatta")
 
 			#####
 
-		if (msg.topic == "MyGreenFridge/" + userID + "/" + fridgeID + "/EAN1"):
+		if (msg.topic == "MyGreenFridge/" + self.userID + "/" + self.fridgeID + "/EAN1"):
 
 			print("prodotto da eliminare ricevuto")
 
@@ -162,20 +163,20 @@ class ProductsAdaptorMQTT:
 
 			# GET al barcode conversion url: - /product?EAN=<ean>
 
-			r01 = requests.get(url_barcode_WS + "product?EAN=" + str(message["EAN1"]))
+			r01 = requests.get(self.url_barcode_WS + "product?EAN=" + str(message["EAN1"]))
 			prod_out = r01.json() #contiene il nome e la marca del prodotto inserito
 			print(prod_out)         #dictOutput = {"product": product_name, "brand": brand}
 
 			# POST AL CATALOG per rimuovere prodotto individuato
 			# - #/product?Fridge_ID=<Fridge_ID>&Prod_ID=<IDProd> : Delete a product for a specified fridge.
 
-			catalog_url_delete = "http://localhost" + catalog_Port + "product?Fridge_ID=" + fridgeID + "&Prod_ID=" + prod_out["product"]
+			catalog_url_delete = "http://" + self.catalog_IP + ":" + self.catalog_Port + "/product?Fridge_ID=" + self.fridgeID + "&Prod_ID=" + prod_out["product"]
 			r11 = requests.delete(catalog_url_delete)
 			print("prodotto rimosso dal frigo")
 
 			# GET AL PROD_OUtPUT_WS per ottenere status
 
-			r21 = requests.get(url_product_output_WS  + "delete_product?FridgeID=" + fridgeID + "&userID=" + userID + "&product_name=" + prod_out["product"] + "&brands=" + prod_out["brand"])
+			r21 = requests.get(self.url_product_output_WS  + "delete_product?FridgeID=" + self.fridgeID + "&userID=" + self.userID + "&product_name=" + prod_out["product"] + "&brands=" + prod_out["brand"])
 
 			print("get al ws fatta")
 
@@ -194,98 +195,99 @@ class ProductsAdaptorMQTT:
 
 class RegistrationThread(threading.Thread):
 
-		def __init__(self, catalogIP, catalogPort, WS_IP, WS_Port):
-			threading.Thread.__init__(self)
-			self.catalogIP = catalogIP
-			self.catalogPort = catalogPort
-			self.WS_IP = WS_IP
-			self.WS_Port = WS_Port
+	def __init__(self, catalogIP, catalogPort, WS_IP, WS_Port):
+		threading.Thread.__init__(self)
+		self.catalogIP = catalogIP
+		self.catalogPort = catalogPort
+		self.WS_IP = WS_IP
+		self.WS_Port = WS_Port
 
-		def run(self):
-			url = "http://"+ self.catalogIP + self.catalogPort
-			while True:
+	def run(self):
+		url = "http://"+ self.catalogIP + self.catalogPort
+		while True:
 
-				### register ProductsControlWS as a web service
-				web_service = json.dumps({"name": "ProductAdaptorWS", "IP": self.WS_IP, "port": self.WS_Port})
-				r1 = requests.post(url + "add_WS", web_service)
+			### register ProductsControlWS as a web service
+			web_service = json.dumps({"name": "ProductAdaptorWS", "IP": self.WS_IP, "port": self.WS_Port})
+			r1 = requests.post(url + "add_WS", web_service)
 
-				print("ProductAdaptorWS registered.")
+			print("ProductAdaptorWS registered.")
 
-				time.sleep(60*60)
+			time.sleep(60*60)
 
 
 class ProductsAdaptorThread(threading.Thread):
 
-		def __init__(self, MQTT_ProductsAdaptor):
-			threading.Thread.__init__(self)
-			self.userID = MQTT_ProductsAdaptor.userID
-			self.fridgeID = MQTT_ProductsAdaptor.fridgeID
+	def __init__(self, MQTT_ProductsAdaptor):
+		threading.Thread.__init__(self)
+		self.userID = MQTT_ProductsAdaptor.userID
+		self.fridgeID = MQTT_ProductsAdaptor.fridgeID
+		self.MQTT_ProductsAdaptor = MQTT_ProductsAdaptor
 
-		def run(self):
-			while True:
+	def run(self):
+		while True:
 
-				topic1 = "MyGreenFridge/" + self.userID + "/" + self.fridgeID + "/EAN0"
-				MQTT_ProductsAdaptor.mySubscribe(topic1)
-				topic2 = "MyGreenFridge/" + self.userID + "/" + self.fridgeID + "/EAN1"
-				MQTT_ProductsAdaptor.mySubscribe(topic2)
+			topic1 = "MyGreenFridge/" + self.userID + "/" + self.fridgeID + "/EAN0"
+			self.MQTT_ProductsAdaptor.mySubscribe(topic1)
+			topic2 = "MyGreenFridge/" + self.userID + "/" + self.fridgeID + "/EAN1"
+			self.MQTT_ProductsAdaptor.mySubscribe(topic2)
 
-				time.sleep(15)
+			time.sleep(15)
 
 class ControlThread(threading.Thread):
 		
-		def __init__(self, catalog_IP, catalog_Port, initFridges, nameWS, broker_IP, broker_port , url_barcode_WS , url_product_input_WS , url_product_output_WS):
+	def __init__(self, catalog_IP, catalog_Port, initFridges, nameWS, broker_IP, broker_port , url_barcode_WS , url_product_input_WS , url_product_output_WS):
+		
+		threading.Thread.__init__(self)
+
+		self.catalog_IP = catalog_IP
+		self.catalog_Port = catalog_Port
+		self.initFridges = initFridges
+		self.nameWS = nameWS
+		self.broker_IP = broker_IP
+		self.broker_port = broker_port
+		self.url_barcode_WS = url_barcode_WS
+		self.url_product_input_WS = url_product_input_WS
+		self.url_product_output_WS = url_product_output_WS
+
+	def run(self):
+
+		catalogURL = "http://" + self.catalog_IP + ":" + self.catalog_Port
+		oldFridges = self.initFridges
+
+		while True:
+		
+			# retrieve all the fridges from the Catalog
+			r = requests.get(catalogURL + "/fridges")
+			dictCurrFridges = r.json() # fridges is a Python dictionary
+			currFridges = []
+			for fridge in dictCurrFridges["fridges"]:
+				currFridges.append(fridge["ID"])
+
+
+			# get new fridges that have been added
+			diffFridges = list(set(currFridges) - set(oldFridges))
+
+			#listThreads = threading.enumerate()
+			#print(listThreads)
 			
-			threading.Thread.__init__(self)
+			for fridgeID in diffFridges:
 
-			self.catalog_IP = catalog_IP
-			self.catalog_Port = catalog_Port
-			self.initFridges = initFridges
-			self.nameWS = nameWS
-			self.broker_IP = broker_IP
-			self.broker_port = broker_port
-			self.url_barcode_WS = url_barcode_WS
-			self.url_product_input_WS = url_product_input_WS
-			self.url_product_output_WS = url_product_output_WS	
-
-			def run(self):
-
-				catalogURL = "http://" + self.catalog_IP + ":" + self.catalog_port
-				oldFridges = self.initFridges
-
-				while True:
-				
-					# retrieve all the fridges from the Catalog
-					r = requests.get(catalogURL + "/fridges")
-					dictCurrFridges = r.json() # fridges is a Python dictionary
-					currFridges = []
-					for fridge in dictCurrFridges["fridges"]:
-						currFridges.append(fridge["ID"])
-
-
-					# get new fridges that have been added
-					diffFridges = list(set(currFridges) - set(oldFridges))
-
-					#listThreads = threading.enumerate()
-					#print(listThreads)
+				for fridge in dictCurrFridges["fridges"]:
 					
-					for fridgeID in diffFridges:
+					if fridgeID == fridge["ID"]:
 
-						for fridge in dictCurrFridges["fridges"]:
-							
-							if fridgeID == fridge["ID"]:
+						userID =  fridge["user"]
+						clientID = self.nameWS + "_" + userID + "_" + fridgeID
 
-								userID =  fridge["user"]
-								clientID = self.nameWS + "_" + userID + "_" + fridgeID
+						MQTT_ProductsAdaptor = ProductsAdaptorMQTT(clientID , userID , fridgeID , self.broker_IP , self.broker_port, self.catalog_IP, self.catalog_Port , self.url_barcode_WS , self.url_product_input_WS , self.url_product_output_WS)
+						MQTT_ProductsAdaptor.start()
 
-								MQTT_ProductsAdaptor = ProductsAdaptorMQTT(clientID , userID , fridgeID , self.broker_IP , self.broker_port, self.catalog_Port , self.url_barcode_WS , self.url_product_input_WS , self.url_product_output_WS)
-								MQTT_ProductsAdaptor.start()
+						ProductsAdaptor_Thread = ProductsAdaptorThread(MQTT_ProductsAdaptor)
+						ProductsAdaptor_Thread.start()
 
-								ProductsAdaptor_Thread = ProductsAdaptorThread(MQTT_ProductsAdaptor)
-								ProductsAdaptor_Thread.start()
-
-					
-					time.sleep(60*60)
-					oldFridges = currFridges.copy()
+			
+			time.sleep(60*60)
+			oldFridges = currFridges.copy()
 
 
 if __name__ == '__main__':
@@ -348,7 +350,6 @@ if __name__ == '__main__':
 	initFridges = []
 	nameWS = "ProductsAdaptorWS"
 
-	print("ciao")
 	controlThread = ControlThread(catalog_IP, catalog_Port, initFridges, nameWS , broker_IP, broker_port , url_barcode_WS , url_product_input_WS , url_product_output_WS)
 	controlThread.start()
 

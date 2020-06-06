@@ -1,6 +1,0 @@
-{
-"catalog_IP": "localhost",
-"catalog_port": ":8080/",
-"TemperatureAlarm_IP":"localhost",
-"TemperatureAlarm_Port":"2323/"
-}

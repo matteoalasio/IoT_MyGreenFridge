@@ -15,18 +15,23 @@ import sys
 
 class MyGreenFridgeBot:
 
-    def __init__(self, conf_file):
+    def __init__(self, conf_file, conf_system):
 
         file = open(conf_file, 'r')
-        dict = json.loads(file.read())
+        dict_bot = json.loads(file.read())
         file.close()
+
+        file = open(conf_system, 'r')
+        dict_system = json.loads(file.read())
+        file.close()
+
 
         # Variables that keep track of a conversation
         self.user_states = [] # list of dictionaries with {'user': chat_id, 'state': temp|light, 'terr': terr_id}
 
-        self.token = dict['token']
-        self.catalogIP = dict['catalog_IP']
-        self.catalogport = str(dict['catalog_port'])
+        self.token = dict_bot['token']
+        self.catalogIP = dict_system['catalogIP']
+        self.catalogport = str(dict_system['catalogPort'])
         self.bot = telepot.Bot(token=str(self.token))
 
         MessageLoop(self.bot, {'chat': self.on_chat_message, 'callback_query': self.on_callback_query}).run_as_thread()
@@ -492,7 +497,7 @@ To be informed when the temperature becomes out of range, please set it with /al
 
 if __name__ == '__main__':
 
-    Fridge_Bot = MyGreenFridgeBot("botconfig.txt")
+    Fridge_Bot = MyGreenFridgeBot("configBot.json", "configSystem.json")
 
 
     while 1:

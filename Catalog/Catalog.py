@@ -478,7 +478,7 @@ class Catalog(object):
         for fridge in dict['fridges']:
             if (fridge['ID'] == fridge_ID):
                 for product in fridge['products']:
-                    if (product['product_ID'] == product_ID):
+                    if (product['product_ID'] == product_ID) and (product['Exp_date']=={}) :
                         expiration_date = product['Exp_date']
                         expiration_date['day'] = added_exp_date['day']
                         expiration_date['month'] = added_exp_date['month']

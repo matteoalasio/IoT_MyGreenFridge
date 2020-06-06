@@ -34,7 +34,6 @@ class TemperatureAlarmThread(threading.Thread):
             port = 8585
             url_WS = "http://" + str(IP) + ":" + str(port) + "/"
 
-            print(self.user_ID, self.fridge_ID)
             # Make the request to obtain the value of the current status
             url = "status?User_ID=" + \
                 str(self.user_ID) + "&Fridge_ID=" + str(self.fridge_ID)
@@ -89,30 +88,77 @@ class RegistrationThread(threading.Thread):
                 time.sleep(60*60)
 
 
+class ControlThread(threading.Thread):
+
+        def __init__(self, catalogIP, catalogPort, initUsers, bot_Token):
+
+            threading.Thread.__init__(self)
+
+            self.catalogIP = catalogIP
+            self.catalogPort = catalogPort
+            self.initUsers = initUsers
+            self.bot_Token = bot_Token
+
+
+        def run(self):
+
+
+            catalog_URL = "http://" + self.catalogIP + ":" + self.catalogPort + "/"
+            oldUsers = self.initUsers
+
+            while True:
+
+                r = requests.get(catalog_URL + "users")
+                i=0
+
+                dictCurrUsers = r.json() # fridges is a Python dictionary
+                currUsers = []
+                for user in dictCurrUsers["users"]:
+                    currUsers.append(user["ID"])
+
+                diffUsers = list(set(currUsers) - set(oldUsers))
+
+
+                for user_ID in diffUsers:
+
+                    for user in dictCurrUsers["users"]:
+
+                        if user_ID == user["ID"]:
+
+                            r = requests.get(catalog_URL + "user_fridge?User_ID=" + str(user_ID))
+
+                            if (r.status_code == 200):
+                                fridge_ID = r.json()
+
+                                TempAlarm_Thread = TemperatureAlarmThread(self.bot_Token, user_ID, fridge_ID, catalog_URL)
+
+                                TempAlarm_Thread.start()
+
+
+                time.sleep(60*60)
+                oldUsers = currUsers.copy()
+
+
 
 if __name__ == '__main__':
     # Open file of configuration, including the data of the catalog
-    file = open("Configuration.txt", "r")
+    file = open("../configSystem.json","r")
     info = json.loads(file.read())
-    catalog_IP = info["catalog_IP"]
-    catalog_Port = info["catalog_port"]
+
+    catalog_IP = info["catalogIP"]
+    catalog_Port = info["catalogPort"]
     file.close()
 
-    file2 = open("botconfig.txt", "r")
+    file2 = open("../configBot.json", "r")
     info2 = json.loads(file2.read())
     bot_Token = info2["token"]
     file2.close()
 
-    catalog_URL = "http://" + catalog_IP + catalog_Port
+    catalog_URL = "http://" + catalog_IP + ":" + catalog_Port + "/"
 
-    user_ID = 110995  # CAPIRE DA DOVE ARRIVA QUESTO PARAMETRO! PRESUMO DA TELEGRAM
-    #Get the list of the users
     r3 = requests.get(catalog_URL + 'users/')
     users = r3.json()
 
-
-
-    # Register the WS in the CATALOG
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.connect(("8.8.8.8", 80))
     ip = s.getsockname()[0]
@@ -121,14 +167,7 @@ if __name__ == '__main__':
     regThread = RegistrationThread(catalog_IP, catalog_Port, ip, port)
     regThread.start()
 
-    for user in users['users']:
-        user_ID = user['ID']
-        r = requests.get(catalog_URL + "user_fridge?User_ID=" + str(user_ID))
+    initUsers = []
 
-        if (r.status_code == 200):
-            fridge_ID = r.json()
-
-            TempAlarm_Thread = TemperatureAlarmThread(
-                bot_Token, user_ID, fridge_ID, catalog_URL)
-
-            TempAlarm_Thread.start()
+    controlThread = ControlThread(catalog_IP, catalog_Port, initUsers, bot_Token)
+    controlThread.start()

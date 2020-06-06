@@ -137,6 +137,69 @@ class RegistrationThread(threading.Thread):
                 time.sleep(60*60)
 
 
+class ControlThread(threading.Thread):
+
+        def __init__(self, catalogIP, catalogPort, initFridges, brokerIP, brokerPort):
+
+            threading.Thread.__init__(self)
+
+            self.catalogIP = catalogIP
+            self.catalogPort = catalogPort
+            self.initFridges = initFridges
+            self.broker_IP = brokerIP
+            self.broker_port = brokerPort
+
+
+        def run(self):
+
+
+            catalog_URL = "http://" + self.catalogIP + ":" + self.catalogPort + '/'
+            oldFridges = self.initFridges
+
+            while True:
+
+                # retrieve all the fridges from the Catalog
+                r = requests.get(catalog_URL + "fridges")
+                i=0
+
+                FridgeStatus_Controller = FridgeStatusControl(3, 3)
+
+                dictCurrFridges = r.json() # fridges is a Python dictionary
+                currFridges = []
+                for fridge in dictCurrFridges["fridges"]:
+                    currFridges.append(fridge["ID"])
+
+
+                # get new fridges that have been added
+                diffFridges = list(set(currFridges) - set(oldFridges))
+
+                #listThreads = threading.enumerate()
+                #print(listThreads)
+
+                for fridge_ID in diffFridges:
+
+                    for fridge in dictCurrFridges["fridges"]:
+
+                        if fridge_ID == fridge["ID"]:
+
+                            user_ID =  fridge["user"]
+                            client_ID = "fridgestatusclient_" + str(i)
+
+                            i=i+1
+
+                            FridgeStatus_MQTT = FridgeStatusMQTT(client_ID, user_ID, fridge_ID, self.broker_IP, self.broker_port, FridgeStatus_Controller)
+
+                            FridgeStatus_MQTT.start()
+
+                            FridgeStatus_Thread = FridgeStatusThread(FridgeStatus_MQTT, user_ID, fridge_ID, catalog_URL, FridgeStatus_Controller)
+                            FridgeStatus_Thread.start()
+
+
+
+                time.sleep(60*60)
+                oldFridges = currFridges.copy()
+
+
 if __name__ == '__main__':
 
     # standard configuration to serve the url "localhost:8080"
@@ -154,13 +217,14 @@ if __name__ == '__main__':
     port = 8585
 
 
-    file = open("Configuration.txt", "r")
+    file = open("../configSystem.json","r")
     info = json.loads(file.read())
 
-    catalog_IP = info["catalog_IP"]
-    catalog_Port = info["catalog_port"]
+    catalog_IP = info["catalogIP"]
+    catalog_Port = info["catalogPort"]
+
     file.close()
-    catalog_URL = "http://" + catalog_IP + catalog_Port
+    catalog_URL = "http://" + catalog_IP + ":" + catalog_Port + "/"
 
     regThread = RegistrationThread(catalog_IP, catalog_Port, ip, port)
     regThread.start()
@@ -194,8 +258,8 @@ if __name__ == '__main__':
         FridgeStatus_Thread = FridgeStatusThread(FridgeStatus_MQTT, user_ID, fridge_ID, catalog_URL, FridgeStatus_Controller)
         FridgeStatus_Thread.start()
 
-        cherrypy.tree.mount(FridgeREST(FridgeStatus_Controller), '/', conf)
-        cherrypy.config.update({'server.socket_host': '0.0.0.0'})
-        cherrypy.config.update({'server.socket_port': port})
-        cherrypy.engine.start()
+    cherrypy.tree.mount(FridgeREST(FridgeStatus_Controller), '/', conf)
+    cherrypy.config.update({'server.socket_host': '0.0.0.0'})
+    cherrypy.config.update({'server.socket_port': port})
+    cherrypy.engine.start()
     cherrypy.engine.block()

@@ -89,22 +89,70 @@ class RegistrationThread(threading.Thread):
 
                 time.sleep(60*60)
 
+class ControlThread(threading.Thread):
+
+        def __init__(self, catalogIP, catalogPort, initUsers, bot_Token):
+
+            threading.Thread.__init__(self)
+
+            self.catalogIP = catalogIP
+            self.catalogPort = catalogPort
+            self.initUsers = initUsers
+            self.bot_Token = bot_Token
+
+
+        def run(self):
+
+
+            catalog_URL = "http://" + self.catalogIP + ":" + self.catalogPort + "/"
+            oldUsers = self.initUsers
+
+            while True:
+
+                r = requests.get(catalog_URL + "users")
+
+                dictCurrUsers = r.json()
+                currUsers = []
+                for user in dictCurrUsers["users"]:
+                    currUsers.append(user["ID"])
+
+                diffUsers = list(set(currUsers) - set(oldUsers))
+
+
+                for user_ID in diffUsers:
+
+                    for user in dictCurrUsers["users"]:
+
+                        if user_ID == user["ID"]:
+
+                            r = requests.get(catalog_URL + "user_fridge?User_ID=" + str(user_ID))
+
+                            if (r.status_code == 200):
+                                fridge_ID = r.json()
+
+                                ExpAlarm_Thread = ExpirationAlarmThread(bot_Token, user_ID, fridge_ID, catalog_URL)
+                                ExpAlarm_Thread.start()
+
+
+                time.sleep(60*60)
+                oldUsers = currUsers.copy()
 
 
 if __name__ == '__main__':
     # Open file of configuration, including the data of the catalog
-    file = open("Configuration.txt", "r")
+    file = open("../configSystem.json","r")
     info = json.loads(file.read())
-    catalog_IP = info["catalog_IP"]
-    catalog_Port = info["catalog_port"]
+
+    catalog_IP = info["catalogIP"]
+    catalog_Port = info["catalogPort"]
     file.close()
 
-    file2 = open("botconfig.txt", "r")
+    file2 = open("../configBot.json", "r")
     info2 = json.loads(file2.read())
     bot_Token = info2["token"]
     file2.close()
 
-    catalog_URL = "http://" + catalog_IP + catalog_Port
+    catalog_URL = "http://" + catalog_IP + ":" + catalog_Port + "/"
     # Register the WS in the CATALOG
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.connect(("8.8.8.8", 80))
@@ -114,17 +162,8 @@ if __name__ == '__main__':
     regThread = RegistrationThread(catalog_IP, catalog_Port, ip, port)
     regThread.start()
 
-    #Get the list of the users
-    r3 = requests.get(catalog_URL + 'users/')
-    users = r3.json()
 
-    for user in users['users']:
-        user_ID = user['ID']
+    initUsers = []
 
-        r = requests.get(catalog_URL + "user_fridge?User_ID=" + str(user_ID))
-
-        if (r.status_code == 200):
-            fridge_ID = r.json()
-            ExpAlarm_Thread = ExpirationAlarmThread(bot_Token, user_ID, fridge_ID, catalog_URL)
-
-            ExpAlarm_Thread.start()
+    controlThread = ControlThread(catalog_IP, catalog_Port, initUsers, bot_Token)
+    controlThread.start()
