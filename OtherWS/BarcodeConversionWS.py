@@ -101,7 +101,7 @@ if __name__ == '__main__':
 
     # read configuration file
     try:
-        configFile = open("configBarcodeConversion.txt", "r")
+        configFile = open("../configSystem.json", "r")
         configJson = configFile.read()
         configDict = json.loads(configJson)
         configFile.close()
@@ -126,18 +126,3 @@ if __name__ == '__main__':
     cherrypy.config.update({'server.socket_port': devPort})
     cherrypy.engine.start()
     cherrypy.engine.block()
-
-    #filename = "barcode_image.jpg"
-    #import 
-    #gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    #barcodes = decode(gray_img)
-    
-    #print(barcodes)
-    #
-    ## this prints:
-    # [Decoded(data=b'8076809531191',
-    # type='EAN13',
-    # rect=Rect(left=419, top=115, width=240, height=122),
-    # polygon=[Point(x=419, y=153), Point(x=419, y=235), Point(x=536, y=237),
-    #           Point(x=659, y=236), Point(x=659, y=148), Point(x=658, y=116),
-    #           Point(x=536, y=115), Point(x=420, y=115)])]

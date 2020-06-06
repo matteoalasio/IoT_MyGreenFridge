@@ -103,7 +103,7 @@ if __name__ == '__main__':
 	devPort = 8690 #inserire numero porta per prod input ws
 
 	try:
-		configFile = open("configProdInput.txt", "r")
+		configFile = open("../configSystem.json", "r")
 		configJson = configFile.read()
 		configDict = json.loads(configJson)
 		configFile.close()

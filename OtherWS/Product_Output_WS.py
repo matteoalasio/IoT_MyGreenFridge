@@ -98,16 +98,16 @@ if __name__ == '__main__':
 	devPort = 8691 #inserire numero porta per prod Output ws
 
 	try:
-		configFile = open("Configuration.txt", "r")
+		configFile = open("../configSystem.json", "r")
 		configJson = configFile.read()
 		configDict = json.loads(configJson)
 		configFile.close()
 	except OSError:
 		sys.exit("ERROR: cannot open the configuration file.")
 
-	catalogIP = configDict["catalog_IP"]
-	catalogPort = configDict["catalog_port"]
-	catalog_URL = "http://" + catalogIP + catalogPort
+	catalogIP = configDict["catalogIP"]
+	catalogPort = configDict["catalogPort"]
+	catalog_URL = "http://" + catalogIP + ":" + catalogPort + "/"
 
 	print("Catalog IP is: " + catalogIP)
 	print("Catalog port is " + catalogPort)

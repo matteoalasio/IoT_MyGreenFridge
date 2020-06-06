@@ -231,6 +231,63 @@ class ProductsAdaptorThread(threading.Thread):
 
 				time.sleep(15)
 
+class ControlThread(threading.Thread):
+		
+		def __init__(self, catalog_IP, catalog_Port, initFridges, nameWS, broker_IP, broker_port , url_barcode_WS , url_product_input_WS , url_product_output_WS):
+			
+			threading.Thread.__init__(self)
+
+			self.catalog_IP = catalog_IP
+			self.catalog_Port = catalog_Port
+			self.initFridges = initFridges
+			self.nameWS = nameWS
+			self.broker_IP = broker_IP
+			self.broker_port = broker_port
+			self.url_barcode_WS = url_barcode_WS
+			self.url_product_input_WS = url_product_input_WS
+			self.url_product_output_WS = url_product_output_WS	
+
+			def run(self):
+
+				catalogURL = "http://" + self.catalog_IP + ":" + self.catalog_port
+				oldFridges = self.initFridges
+
+				while True:
+				
+					# retrieve all the fridges from the Catalog
+					r = requests.get(catalogURL + "/fridges")
+					dictCurrFridges = r.json() # fridges is a Python dictionary
+					currFridges = []
+					for fridge in dictCurrFridges["fridges"]:
+						currFridges.append(fridge["ID"])
+
+
+					# get new fridges that have been added
+					diffFridges = list(set(currFridges) - set(oldFridges))
+
+					#listThreads = threading.enumerate()
+					#print(listThreads)
+					
+					for fridgeID in diffFridges:
+
+						for fridge in dictCurrFridges["fridges"]:
+							
+							if fridgeID == fridge["ID"]:
+
+								userID =  fridge["user"]
+								clientID = self.nameWS + "_" + userID + "_" + fridgeID
+
+								MQTT_ProductsAdaptor = ProductsAdaptorMQTT(clientID , userID , fridgeID , self.broker_IP , self.broker_port, self.catalog_Port , self.url_barcode_WS , self.url_product_input_WS , self.url_product_output_WS)
+								MQTT_ProductsAdaptor.start()
+
+								ProductsAdaptor_Thread = ProductsAdaptorThread(MQTT_ProductsAdaptor)
+								ProductsAdaptor_Thread.start()
+
+					
+					time.sleep(60*60)
+					oldFridges = currFridges.copy()
+
+
 if __name__ == '__main__':
 
 	conf = {
@@ -246,18 +303,18 @@ if __name__ == '__main__':
 	devPort = 8586
 
 	#Open file of configuration, including the data of the catalog
-	file = open("Configuration.txt","r")
+	file = open("../configSystem.json", "r")
 	info = json.loads(file.read())
 	file.close()
 
-	catalog_IP = info["catalog_IP"]
-	catalog_Port = info["catalog_port"]
-	catalog_URL =  "http://" + catalog_IP + catalog_Port
+	catalog_IP = info["catalogIP"]
+	catalog_Port = info["catalogPort"]
+	catalog_URL =  "http://" + catalog_IP + ":" + catalog_Port + "/"
 
 	regThread = RegistrationThread(catalog_IP, catalog_Port, ip, devPort)
 	regThread.start()
 
-#  richiedere poorte dinamicamente
+#  richiedere porte dinamicamente
 	try:
 		r = requests.get(catalog_URL + "broker")
 		broker = r.json()
@@ -288,21 +345,12 @@ if __name__ == '__main__':
 	product_output_port = product_output['URL']['port']
 	url_product_output_WS = "http://" + str(IP) + ":" + str(product_output_port) + "/"
 
+	initFridges = []
+	nameWS = "ProductsAdaptorWS"
 
-	for fridge in fridges["fridges"]:
-
-		userID =  fridge["user"]
-		fridgeID = fridge["ID"]
-		clientID = "ProductsAdaptorlWS_" + userID + "_" + fridgeID
-
-
-		MQTT_ProductsAdaptor = ProductsAdaptorMQTT(clientID , userID , fridgeID , broker_IP , broker_port, catalog_Port , url_barcode_WS , url_product_input_WS , url_product_output_WS)
-		MQTT_ProductsAdaptor.start()
-
-
-		ProductsAdaptor_Thread = ProductsAdaptorThread(MQTT_ProductsAdaptor)
-		ProductsAdaptor_Thread.start()
-
+	print("ciao")
+	controlThread = ControlThread(catalog_IP, catalog_Port, initFridges, nameWS , broker_IP, broker_port , url_barcode_WS , url_product_input_WS , url_product_output_WS)
+	controlThread.start()
 
 	cherrypy.tree.mount(ProductsAdaptorREST(catalog_URL), '/', conf)
 	cherrypy.config.update({'server.socket_host': '0.0.0.0'})
