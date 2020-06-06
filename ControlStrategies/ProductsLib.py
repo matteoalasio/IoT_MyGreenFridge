@@ -54,13 +54,12 @@ class ProductsController:
 
 class ProductsControlMQTT:
 
-	def __init__(self, clientID, broker, port, productsController):
+	def __init__(self, clientID, broker, port, productsController, userID, fridgeID, sensorID, catalogIP, catalogPort, topicEnd):
 
 		self.broker = broker
 		self.port = port
 		self.clientID = clientID
 
-		self.productsController = productsController
 
 		#self.topic = topic
 		self._isSubscriber = True
@@ -71,6 +70,14 @@ class ProductsControlMQTT:
 		# register the callback
 		self._paho_mqtt.on_connect = self.myOnConnect
 		self._paho_mqtt.on_message = self.myOnMessageReceived
+
+		self.productsController = productsController
+		self.userID = userID
+		self.fridgeID = fridgeID
+		self.sensorID = sensorID
+		self.catalogIP = catalogIP
+		self.catalogPort = catalogPort
+		self.topicEnd = topicEnd
 
 
 
@@ -89,6 +96,37 @@ class ProductsControlMQTT:
 		imageString = ((message["e"])[0])["v"]
 
 		self.productsController.updateImage(imageString)
+
+		# imageString is received on topicSubscribe and stored in productsControlMQTT.productsController
+		#imageString = self.productsControlMQTT.productsController.getImage()
+
+				
+		# publish EANcode corresponding to imageString on the relative topic EAN0
+		topicPublish = "MyGreenFridge/" + self.userID + "/" + self.fridgeID + "/" + self.topicEnd
+
+
+		try:
+			# get EANcode from imageString	
+			EANcode = self.productsController.imageToEan(imageString)
+				
+		except: # catch all exceptions
+
+			# if the EAN code cannot be retrieved, print an error
+			e = sys.exc_info()[0]
+			print("Invalid EAN code for user " + self.userID + " .")
+			print(e)
+			EANcode = None
+
+		# EAN0: EANcode
+		messageDict = {self.topicEnd: EANcode}
+		messageJson = json.dumps(messageDict)
+				
+		# publish on topic EAN0 only if there is a valid EAN code
+		if EANcode != None:
+			# publish on topicPublish
+			self.myPublish(topicPublish, messageJson)
+
+
 
 
 	def myPublish (self, topic, msg):
@@ -137,6 +175,7 @@ class ProductsThread(threading.Thread):
 			self.catalogIP = catalogIP
 			self.catalogPort = catalogPort
 			self.topicEnd = topicEnd
+			#self.threadID = threadID
 
 
 		def run(self):
@@ -149,34 +188,34 @@ class ProductsThread(threading.Thread):
 
 			while True:
 				
-				# imageString is received on topicSubscribe and stored in productsControlMQTT.productsController
+				# # imageString is received on topicSubscribe and stored in productsControlMQTT.productsController
 				imageString = self.productsControlMQTT.productsController.getImage()
 
 				
-				# publish EANcode corresponding to imageString on the relative topic EAN0
-				topicPublish = "MyGreenFridge/" + self.userID + "/" + self.fridgeID + "/" + self.topicEnd
+				# # publish EANcode corresponding to imageString on the relative topic EAN0
+				# topicPublish = "MyGreenFridge/" + self.userID + "/" + self.fridgeID + "/" + self.topicEnd
 
 
-				try:
-					# get EANcode from imageString	
-					EANcode = self.productsControlMQTT.productsController.imageToEan(imageString)
+				# try:
+				# 	# get EANcode from imageString	
+				# 	EANcode = self.productsControlMQTT.productsController.imageToEan(imageString)
 				
-				except: # catch all exceptions
+				# except: # catch all exceptions
 
-					# if the EAN code cannot be retrieved, print an error
-					e = sys.exc_info()[0]
-					print("Invalid EAN code for user " + self.userID + " .")
-					print(e)
-					EANcode = None
+				# 	# if the EAN code cannot be retrieved, print an error
+				# 	e = sys.exc_info()[0]
+				# 	print("Invalid EAN code for user " + self.userID + " .")
+				# 	print(e)
+				# 	EANcode = None
 
-				# EAN0: EANcode
-				messageDict = {self.topicEnd: EANcode}
-				messageJson = json.dumps(messageDict)
+				# # EAN0: EANcode
+				# messageDict = {self.topicEnd: EANcode}
+				# messageJson = json.dumps(messageDict)
 				
-				# publish on topic EAN0 only if there is a valid EAN code
-				if EANcode != None:
-					# publish on topicPublish
-					self.productsControlMQTT.myPublish(topicPublish, messageJson)
+				# # publish on topic EAN0 only if there is a valid EAN code
+				# if EANcode != None:
+				# 	# publish on topicPublish
+				# 	self.productsControlMQTT.myPublish(topicPublish, messageJson)
 
 
 				# update sensor information on the Catalog
@@ -184,7 +223,6 @@ class ProductsThread(threading.Thread):
 							"Value": imageString}
 				jsonC0 = json.dumps(dictC0)
 				r = requests.put(url, data=jsonC0)
-
 
 				time.sleep(15)
 
@@ -231,22 +269,87 @@ def mainFunct(catalogIP, catalogPort, devIP, devPort, nameWS, sensorID, topicEnd
 	regThread = RegistrationThread(catalogIP, catalogPort, devIP, devPort, nameWS)
 	regThread.start()
 
-	# retrieve all the fridges from the Catalog
-	r2 = requests.get(catalogURL + "/fridges")
-	fridges = r2.json() # fridges is a Python dictionary
+
+	# # retrieve all the fridges from the Catalog
+	# r2 = requests.get(catalogURL + "/fridges")
+	# fridges = r2.json() # fridges is a Python dictionary
 
 
-	# iterate over all the fridges
-	for fridge in fridges["fridges"]:
+	# # iterate over all the fridges
+	# for fridge in fridges["fridges"]:
 		
-		userID =  fridge["user"]
-		fridgeID = fridge["ID"]
-		clientID = nameWS + "_" + userID + "_" + fridgeID
+	# 	userID =  fridge["user"]
+	# 	fridgeID = fridge["ID"]
+	# 	clientID = nameWS + "_" + userID + "_" + fridgeID
 
-		productsController = ProductsController()
-		productsControlMQTT = ProductsControlMQTT(clientID, brokerIP, brokerPort, productsController)
-		productsControlMQTT.start()
+	# 	productsController = ProductsController()
+	# 	productsControlMQTT = ProductsControlMQTT(clientID, brokerIP, brokerPort, productsController, userID, fridgeID, sensorID, catalogIP, catalogPort, topicEnd)
+	# 	productsControlMQTT.start()
 
-		prodThread = ProductsThread(productsControlMQTT, userID, fridgeID, sensorID, catalogIP, catalogPort, topicEnd)
-		prodThread.start()
+	# 	prodThread = ProductsThread(productsControlMQTT, userID, fridgeID, sensorID, catalogIP, catalogPort, topicEnd)
+	# 	prodThread.start()
+
+	initFridges = []
+
+	controlThread = ControlThread(catalogIP, catalogPort, initFridges, nameWS, sensorID, topicEnd, brokerIP, brokerPort)
+	controlThread.start()
+
+
+class ControlThread(threading.Thread):
+		
+		def __init__(self, catalogIP, catalogPort, initFridges, nameWS, sensorID, topicEnd, brokerIP, brokerPort):
+			
+			threading.Thread.__init__(self)
+
+			self.catalogIP = catalogIP
+			self.catalogPort = catalogPort
+			self.initFridges = initFridges
+			self.nameWS = nameWS
+			self.brokerIP = brokerIP
+			self.brokerPort = brokerPort
+			self.topicEnd = topicEnd
+			self.sensorID = sensorID
+
+		
+		def run(self):
+
+			
+			catalogURL = "http://" + self.catalogIP + ":" + self.catalogPort
+			oldFridges = self.initFridges
+
+			while True:
+			
+				# retrieve all the fridges from the Catalog
+				r = requests.get(catalogURL + "/fridges")
+				dictCurrFridges = r.json() # fridges is a Python dictionary
+				currFridges = []
+				for fridge in dictCurrFridges["fridges"]:
+					currFridges.append(fridge["ID"])
+
+
+				# get new fridges that have been added
+				diffFridges = list(set(currFridges) - set(oldFridges))
+
+				#listThreads = threading.enumerate()
+				#print(listThreads)
+				
+				for fridgeID in diffFridges:
+
+					for fridge in dictCurrFridges["fridges"]:
+						
+						if fridgeID == fridge["ID"]:
+
+							userID =  fridge["user"]
+							clientID = self.nameWS + "_" + userID + "_" + fridgeID
+
+							productsController = ProductsController()
+							productsControlMQTT = ProductsControlMQTT(clientID, self.brokerIP, self.brokerPort, productsController, userID, fridgeID, self.sensorID, self.catalogIP, self.catalogPort, self.topicEnd)
+							productsControlMQTT.start()
+
+							prodThread = ProductsThread(productsControlMQTT, userID, fridgeID, self.sensorID, self.catalogIP, self.catalogPort, self.topicEnd)
+							prodThread.start()
+
+				
+				time.sleep(60*60)
+				oldFridges = currFridges.copy()
 

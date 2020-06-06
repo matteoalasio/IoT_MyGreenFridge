@@ -47,22 +47,23 @@ class ExpirationAlarmThread(threading.Thread):
             ID_bot = user['ID_bot']
 
             for product in res['Products']:
-                if (int(product['Exp_date']['year']) == int(year)):
-                    if (int(product['Exp_date']['month']) == int(month)):
-                        if (int(product['Exp_date']['day']) - int(day) <=3 and int(product['Exp_date']['day']) - int(day) >=0):
-                            difference =  int(product['Exp_date']['day']) - int(day)
-                            try:
-                                if difference == 0:
-                                    r2 = requests.get('https://api.telegram.org/bot' + self.bot_Token + '/sendMessage?chat_id=' + str(ID_bot) +
-                                              '&text=' + 'Attention! Your ' + str(product['product_ID']) + ' ' + str(product['brand']) + ' will expire today')
-                                    r2.raise_for_status()
-                                else:
-                                    r2 = requests.get('https://api.telegram.org/bot' + self.bot_Token + '/sendMessage?chat_id=' + str(ID_bot) +
-                                              '&text=' + 'Attention! Your ' + str(product['product_ID']) + ' ' + str(product['brand']) + ' will expire in ' + str(difference) + ' days')
-                                    r2.raise_for_status()
+                if product['Exp_date']!= {}:
+                    if (int(product['Exp_date']['year']) == int(year)):
+                        if (int(product['Exp_date']['month']) == int(month)):
+                            if (int(product['Exp_date']['day']) - int(day) <=3 and int(product['Exp_date']['day']) - int(day) >=0):
+                                difference =  int(product['Exp_date']['day']) - int(day)
+                                try:
+                                    if difference == 0:
+                                        r2 = requests.get('https://api.telegram.org/bot' + self.bot_Token + '/sendMessage?chat_id=' + str(ID_bot) +
+                                                  '&text=' + 'Attention! Your ' + str(product['product_ID']) + ' ' + str(product['brand']) + ' will expire today')
+                                        r2.raise_for_status()
+                                    else:
+                                        r2 = requests.get('https://api.telegram.org/bot' + self.bot_Token + '/sendMessage?chat_id=' + str(ID_bot) +
+                                                  '&text=' + 'Attention! Your ' + str(product['product_ID']) + ' ' + str(product['brand']) + ' will expire in ' + str(difference) + ' days')
+                                        r2.raise_for_status()
 
-                            except requests.HTTPError as error:
-                                print(error)
+                                except requests.HTTPError as error:
+                                    print(error)
 
 
             time.sleep(24*60*60)

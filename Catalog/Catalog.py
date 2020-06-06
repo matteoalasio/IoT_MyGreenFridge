@@ -34,6 +34,30 @@ class Catalog(object):
                 return "Password is not correct!"
         return "User not found!"
 
+    # Update timestamp
+    def update_timestamp(self):
+
+        file = open(self.filename, 'r')
+        json_file = file.read()
+        dict = json.loads(json_file)
+        file.close()
+
+        dict['last_edit'] = time.time()
+        file = open(self.filename, 'w')
+        file.write(json.dumps(dict))
+        file.close()
+        return
+
+    # Return information about all the catalog
+    def all_catalog(self):
+        file = open(self.filename, 'r')
+        json_file = file.read()
+        dict = json.loads(json_file)
+        file.close()
+
+        return dict
+
+
 
     # Associate to a user, a specific fridge
     # def associate_user_fridge(self, user_ID, fridge_ID):

@@ -85,6 +85,14 @@ class Catalog_REST:
             info = json.dumps({'broker_IP': IP, 'broker_port': Port})
             return info
 
+        #/catalog/
+        # Information about the whole catalog
+        if uri[0] == 'catalog':
+            catalog = self.catalog.all_catalog()
+            info = json.dumps({'catalog': catalog})
+            return info
+        
+
         #/users/
         # Information about the available users
         elif uri[0] == 'users':
@@ -214,6 +222,7 @@ class Catalog_REST:
         # The body required is : {"ID":"", "user":"", "API":"", "channel":""}
         if uri[0] == 'add_fridge':
             info_added = self.catalog.add_fridge(body)
+            self.catalog.update_timestamp()
             return info_added
 
         #/add_user/
@@ -223,6 +232,7 @@ class Catalog_REST:
             info_added = self.catalog.add_user(body)
             if info_added == "User already present":
                 raise cherrypy.HTTPError(404, info_added)
+            self.catalog.update_timestamp()
             return info_added
 
 
@@ -234,6 +244,7 @@ class Catalog_REST:
             info_added = self.catalog.add_sensor(fridge_ID, body)
             if info_added == "Fridge not found!":
                 raise cherrypy.HTTPError(404, info_added)
+            self.catalog.update_timestamp()
             return info_added
 
 
@@ -245,12 +256,13 @@ class Catalog_REST:
             info_added = self.catalog.add_product(fridge_ID, body)
             if info_added == "Fridge not found!":
                 raise cherrypy.HTTPError(404, info_added)
+            self.catalog.update_timestamp()
             return info_added
 
         #/add_expiration?Fridge_ID=<IDFridge>&Product_ID=<IDProduct>
         # Add the expiration date of a specified product
         # The body of the request has to be {"day":"", "month":"", "year":""}
-        if uri[0] == 'add_expiration':
+        elif uri[0] == 'add_expiration':
             product_ID = params['Product_ID']
             fridge_ID = params['Fridge_ID']
             info_added = self.catalog.add_expiration(
@@ -259,26 +271,29 @@ class Catalog_REST:
                 raise cherrypy.HTTPError(404, info_added)
             if info_added == "Product not found!":
                 raise cherrypy.HTTPError(404, info_added)
+            self.catalog.update_timestamp()
             return info_added
 
         #/add_wasted?Fridge_ID=<IDFridge>
         # Add a wasted product to a specified fridge
         # The body of the request has to be {"product_ID":""}
-        if uri[0] == 'add_wasted':
+        elif uri[0] == 'add_wasted':
             fridge_ID = params['Fridge_ID']
             info_added = self.catalog.add_wasted(fridge_ID, body)
             if info_added == "Fridge not found!":
                 raise cherrypy.HTTPError(404, info_added)
             if info_added == "Product was not present in the fridge!":
                 raise cherrypy.HTTPError(404, info_added)
+            self.catalog.update_timestamp()
             return info_added
 
 
         #/add_WS
         #Add a Web Service to the catalog structure
         #The body required is {"name":"", "IP":"", "port":""}
-        if uri[0] == 'add_WS':
+        elif uri[0] == 'add_WS':
             info_added = self.catalog.add_WS(body)
+            self.catalog.update_timestamp()
             return info_added
 
         else:
@@ -302,6 +317,7 @@ class Catalog_REST:
             info_updated = self.catalog.update_user(body)
             if info_updated == "User not found!":
                 raise cherrypy.HTTPError(404, info_updated)
+            self.catalog.update_timestamp()
             return info_updated
 
 
@@ -312,6 +328,7 @@ class Catalog_REST:
             info_updated = self.catalog.update_fridge(body)
             if info_updated == "Fridge not found!":
                 raise cherrypy.HTTPError(404, info_updated)
+            self.catalog.update_timestamp()
             return info_updated
 
 
@@ -323,6 +340,7 @@ class Catalog_REST:
             info_updated = self.catalog.update_sensor(fridge_ID, body)
             if info_updated == "Fridge not found!":
                 raise cherrypy.HTTPError(404, info_updated)
+            self.catalog.update_timestamp()
             return info_updated
 
         #/update_password?User_ID=<IDUser>
@@ -335,6 +353,7 @@ class Catalog_REST:
                 raise cherrypy.HTTPError(401, info_updated)
             if info_updated == "User not found!":
                 raise cherrypy.HTTPError(404, info_updated)
+            self.catalog.update_timestamp()
             return info_updated
 
         else:
@@ -353,6 +372,7 @@ class Catalog_REST:
             info_updated = self.catalog.delete_fridge(ID)
             if info_updated == "Fridge not found!":
                 raise cherrypy.HTTPError(404, info_updated)
+            self.catalog.update_timestamp()
             return info_updated
 
         #/user?ID=<id>
@@ -362,6 +382,7 @@ class Catalog_REST:
             info_updated = self.catalog.delete_user(ID)
             if info_updated == "User not found!":
                 raise cherrypy.HTTPError(404, info_updated)
+            self.catalog.update_timestamp()
             return info_updated
 
         #/sensor/fridge_ID?Sensor_ID=<IDSensor>
@@ -374,6 +395,7 @@ class Catalog_REST:
                 raise cherrypy.HTTPError(404, info_updated)
             if info_updated == "Fridge not found!":
                 raise cherrypy.HTTPError(404, info_updated)
+            self.catalog.update_timestamp()
             return info_updated
 
         #/product?Fridge_ID=<Fridge_ID>&Prod_ID=<IDProd>
@@ -386,6 +408,7 @@ class Catalog_REST:
                 raise cherrypy.HTTPError(404, info_updated)
             if info_updated == "Fridge not found!":
                 raise cherrypy.HTTPError(404, info_updated)
+            self.catalog.update_timestamp()
             return info_updated
 
         else:
@@ -404,7 +427,6 @@ if __name__ == '__main__':
 
 
 cherrypy.tree.mount(Catalog_REST(), '/', conf)
-#cherrypy.config.update({'server.socket_host': '127.0.0.1'})
 cherrypy.config.update({'server.socket_host': '0.0.0.0'})
 cherrypy.config.update({'server.socket_port': 8080})
 cherrypy.engine.start()
