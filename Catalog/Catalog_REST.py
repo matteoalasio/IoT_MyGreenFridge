@@ -398,12 +398,18 @@ class Catalog_REST:
             self.catalog.update_timestamp()
             return info_updated
 
-        #/product?Fridge_ID=<Fridge_ID>&Prod_ID=<IDProd>
+        #/product?Fridge_ID=<Fridge_ID>
         # Delete a product for a specified fridge
         if uri[0] == 'product':
             product_ID = params['Prod_ID']
-            fridge_ID = (params['Fridge_ID'])
-            info_updated = self.catalog.delete_product(fridge_ID, product_ID)
+            fridge_ID = params['Fridge_ID']
+            day = params['day']
+            month = params['month']
+            year = params['year']
+            exp_date = {"day": day, "month": month, "year": year}
+            product = {"product_ID": product_ID, "expiration_date": exp_date}
+
+            info_updated = self.catalog.delete_product(fridge_ID, product)
             if info_updated == "Product not found!":
                 raise cherrypy.HTTPError(404, info_updated)
             if info_updated == "Fridge not found!":

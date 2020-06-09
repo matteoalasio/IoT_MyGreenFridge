@@ -446,7 +446,7 @@ class Catalog(object):
         return "Fridge not found!"
 
     # Delete a speicified product
-    def delete_product(self, fridge_ID, del_product_ID):
+    def delete_product(self, fridge_ID, del_product):
         file = open(self.filename, 'r')
         json_file = file.read()
         dict = json.loads(json_file)
@@ -455,7 +455,10 @@ class Catalog(object):
         for fridge in dict['fridges']:
             if (fridge['ID'] == fridge_ID):
                 for product in fridge['products']:
-                    if (product['product_ID'] == str(del_product_ID)):
+                    if (product['product_ID'] == del_product["product_ID"] and
+                        product['Exp_date']["day"] == del_product["expiration_date"]["day"] and
+                        product['Exp_date']["month"] == del_product["expiration_date"]["month"] and
+                        product['Exp_date']["year"] == del_product["expiration_date"]["year"]):
                         flag = 1
                         fridge['products'].remove(product)
 
@@ -517,7 +520,10 @@ class Catalog(object):
         for fridge in dict['fridges']:
             if fridge['ID'] == fridge_ID:
                 for product in fridge['products']:
-                    if (product['product_ID'] == str(wasted_product['product_ID'])):
+                    if (product['product_ID'] == str(wasted_product['product_ID']) and
+                        product['Exp_date']["day"] == str(wasted_product['expiration_date']["day"]) and
+                        product['Exp_date']["month"] == str(wasted_product['expiration_date']["month"]) and
+                        product['Exp_date']["year"] == str(wasted_product['expiration_date']["year"]) ):
 
                         fridge['wasted'].append(
                             {'product_ID': str(wasted_product['product_ID'])})

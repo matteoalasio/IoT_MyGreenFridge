@@ -259,6 +259,7 @@ To be informed when the temperature becomes out of range, please set it with /al
                     #Get the ip and port of ProductAdaptorWS
                     r = requests.get('http://' + self.catalogIP + ':' + self.catalogport + "/web_service?Name=" + "ProductAdaptorWS")
                     dict = r.json()
+                    print(dict)
                     IP = dict['URL']['IP']
                     port = dict['URL']['port']
                     url_WS = "http://" + str(IP) + ":" + str(port) + "/"
@@ -282,15 +283,16 @@ To be informed when the temperature becomes out of range, please set it with /al
                 params_bot = command.split(' ')
 
                 if len(params_bot) < 3:
-                    self.bot.sendMessage(chat_id, 'Correct syntax is: /add_wasted fridge_ID product_name.')
+                    self.bot.sendMessage(chat_id, 'Correct syntax is: /add_wasted fridge_ID product_name expiration_date.')
                     return
 
                 fridge_ID = params_bot[1]
                 product_ID = params_bot[2]
+                exp_date = params_bot[3]
 
                 keyboard = InlineKeyboardMarkup(inline_keyboard=[
-                     [InlineKeyboardButton(text='Wasted', callback_data='wastedProduct_' + str(fridge_ID) +'_' + str(product_ID)) ,
-                     InlineKeyboardButton(text='Consumed', callback_data='consumedProduct_'+ str(fridge_ID) +'_' + str(product_ID))]])
+                     [InlineKeyboardButton(text='Wasted', callback_data='wastedProduct_' + str(fridge_ID) +'_' + str(product_ID) + '_' + str(exp_date)) ,
+                     InlineKeyboardButton(text='Consumed', callback_data='consumedProduct_'+ str(fridge_ID) +'_' + str(product_ID) + '_' + str(exp_date))]])
 
                 msg = self.bot.sendMessage(chat_id, 'Did you eat or waste the product ' + str(product_ID) +'?', reply_markup=keyboard)
 
@@ -427,6 +429,13 @@ To be informed when the temperature becomes out of range, please set it with /al
 
         elif query == 'wastedProduct':
             product_ID = query_data.split('_')[2]
+            exp_date = query_data.split('_')[3]
+
+            expiration_date = exp_date.split('/')
+            day = expiration_date[0]
+            month = expiration_date[1]
+            year = expiration_date[2]
+            
 
             try:
                 #Get the ip and port of ProductAdaptorWS
@@ -437,7 +446,7 @@ To be informed when the temperature becomes out of range, please set it with /al
                 url_WS = "http://" + str(IP) + ":" + str(port) + "/"
                 print(url_WS)
 
-                body = json.dumps({"status":"wasted"})
+                body = json.dumps({"status":"wasted", "expiration_date": {"day":day, "month":month, "year":year}})
 
                 r2 = requests.post(str(url_WS) + "add_wasted?Fridge_ID=" +str (fridge_ID) + "&Product_ID=" + str(product_ID), data=body)
                 #headers = {'Content-Type':'text/html'}
@@ -450,6 +459,13 @@ To be informed when the temperature becomes out of range, please set it with /al
 
         elif query == 'consumedProduct':
             product_ID = query_data.split('_')[2]
+            exp_date = query_data.split('_')[3]
+
+            expiration_date = exp_date.split('/')
+            day = expiration_date[0]
+            month = expiration_date[1]
+            year = expiration_date[2]
+
             try:
                 #Get the ip and port of ProductAdaptorWS
                 r = requests.get('http://' + self.catalogIP + ':' + self.catalogport + "/web_service?Name=" + "ProductAdaptorWS")
@@ -458,7 +474,7 @@ To be informed when the temperature becomes out of range, please set it with /al
                 port = dict['URL']['port']
                 url_WS = "http://" + str(IP) + ":" + str(port) + "/"
 
-                body = json.dumps({"status":"consumed"})
+                body = json.dumps({"status":"consumed", "expiration_date": {"day":day, "month":month, "year":year}})
 
                 r2 = requests.post(str(url_WS) + "add_wasted?Fridge_ID=" +str (fridge_ID) + "&Product_ID=" + str(product_ID), data=body)
 

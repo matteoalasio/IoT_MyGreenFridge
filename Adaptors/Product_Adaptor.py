@@ -44,23 +44,37 @@ class ProductsAdaptorREST(object):
 		if uri[0] == 'add_expiration':
 			product_ID = params['Product_ID']
 			fridge_ID = params['Fridge_ID']
-			print("okokok")
 			print(catalog_URL)
 			print(json.dumps(body))
 			#/add_expiration?Fridge_ID=<IDFridge>&Product_ID=<IDProduct>
-			r3 = requests.post(catalog_URL + "add_expiration?Fridge_ID=" + fridge_ID + "&Product_ID=" + product_ID, data=json.dumps(body))
+			r3 = requests.post(self.catalog_URL + "add_expiration?Fridge_ID=" + fridge_ID + "&Product_ID=" + product_ID, data=json.dumps(body))
 			print("data di scadenza aggiunta al frigo")
 
 		if uri[0] == 'add_wasted':
-			print("ciaone")
+
 			product_ID = params['Product_ID']
 			fridge_ID = params['Fridge_ID']
+			corpo = { "product_ID": product_ID, "expiration_date": body["expiration_date"]}
+			
 			if body["status"] == "wasted":
-				corpo = { "product_ID": product_ID}
-				print("okokok")
-				r3 = requests.post(catalog_URL + "add_wasted?Fridge_ID=" + fridge_ID, data=json.dumps(corpo))
+				
+
+				r3 = requests.post(self.catalog_URL + "add_wasted?Fridge_ID=" + fridge_ID, data=json.dumps(corpo))
 				print("prodotto rimosso")
-			return ("ciao")
+				
+			elif body["status"] == "consumed":
+
+				catalog_url_delete = (self.catalog_URL + "product?Fridge_ID=" + fridge_ID +
+					"&Prod_ID=" + product_ID +
+					"&day=" + body["expiration_date"]["day"] +
+					"&month=" + body["expiration_date"]["month"] +
+					"&year=" + body["expiration_date"]["year"])
+				r11 = requests.delete(catalog_url_delete)
+				print("prodotto rimosso dal frigo")
+
+
+				
+			return
 
 	def PUT (self, *uri, **params):
 		pass
@@ -170,9 +184,9 @@ class ProductsAdaptorMQTT:
 			# POST AL CATALOG per rimuovere prodotto individuato
 			# - #/product?Fridge_ID=<Fridge_ID>&Prod_ID=<IDProd> : Delete a product for a specified fridge.
 
-			catalog_url_delete = "http://" + self.catalog_IP + ":" + self.catalog_Port + "/product?Fridge_ID=" + self.fridgeID + "&Prod_ID=" + prod_out["product"]
-			r11 = requests.delete(catalog_url_delete)
-			print("prodotto rimosso dal frigo")
+			#catalog_url_delete = "http://" + self.catalog_IP + ":" + self.catalog_Port + "/product?Fridge_ID=" + self.fridgeID + "&Prod_ID=" + prod_out["product"]
+			#r11 = requests.delete(catalog_url_delete)
+			#print("prodotto rimosso dal frigo")
 
 			# GET AL PROD_OUtPUT_WS per ottenere status
 
@@ -203,7 +217,7 @@ class RegistrationThread(threading.Thread):
 		self.WS_Port = WS_Port
 
 	def run(self):
-		url = "http://"+ self.catalogIP + self.catalogPort
+		url = "http://"+ self.catalogIP + ":" + self.catalogPort + "/"
 		while True:
 
 			### register ProductsControlWS as a web service

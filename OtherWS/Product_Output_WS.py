@@ -64,7 +64,7 @@ class RegistrationThread(threading.Thread):
 			threading.Thread.__init__(self)
 
 		def run(self):
-			url = "http://"+ catalogIP + catalogPort
+			url = "http://"+ catalogIP + ":" + catalogPort + "/"
 			while True:
 
 				### register BarcodeConversionREST as a web service
