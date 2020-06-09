@@ -244,9 +244,9 @@ class Catalog(object):
                                     'products': [],
                                     'wasted': [],
                                     'alarm_status': "off",
-                                    'insert-timestamp': None,
-                                    'IP': None,
-                                    'port': None})
+                                    'insert-timestamp': None})
+                                    #'IP': None,
+                                    #'port': None})
 
                 file = open(self.filename, 'w')
                 file.write(json.dumps(dict))
@@ -268,8 +268,8 @@ class Catalog(object):
                 fridge['ID'] = updated_fridge['ID']
                 fridge['sensors'] = updated_fridge['sensors']
                 fridge['insert-timestamp']=time.time()
-                fridge['IP'] = updated_fridge['IP'],
-                fridge['port'] = updated_fridge['port']
+                #fridge['IP'] = updated_fridge['IP'],
+                #fridge['port'] = updated_fridge['port']
                 file = open(self.filename, 'w')
                 file.write(json.dumps(dict))
                 file.close()

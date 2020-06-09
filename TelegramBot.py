@@ -297,6 +297,32 @@ To be informed when the temperature becomes out of range, please set it with /al
                 msg = self.bot.sendMessage(chat_id, 'Did you eat or waste the product ' + str(product_ID) +'?', reply_markup=keyboard)
 
 
+            elif command.startswith('/ThingSpeak'):
+                params_bot = command.split(' ')
+
+                if len(params_bot) < 2:
+                    self.bot.sendMessage(chat_id, 'Correct syntax is:\n /ThingSpeak fridge_ID')
+                    return
+
+                fridge_ID = params_bot[1]
+
+                URL = 'http://' + self.catalogIP + ':' + self.catalogport + '/fridges/'
+
+                try:
+                    r = requests.get(URL)
+                    r.raise_for_status()
+                    fridges = r.json()
+                    for fridge in fridges["fridges"]:
+                        if fridge["ID"] == fridge_ID:
+                            channel_ID = fridge["channel"]
+
+                except requests.HTTPError as err:
+                    self.bot.sendMessage(chat_id, 'An error happened. Please, try again.')
+                    return
+
+                msg = self.bot.sendMessage(chat_id, 'https://thingspeak.com/channels/' + str(channel_ID))
+
+
 
             elif command.startswith('/alarm'):
                 params_bot = command.split(' ')
@@ -435,7 +461,7 @@ To be informed when the temperature becomes out of range, please set it with /al
             day = expiration_date[0]
             month = expiration_date[1]
             year = expiration_date[2]
-            
+
 
             try:
                 #Get the ip and port of ProductAdaptorWS

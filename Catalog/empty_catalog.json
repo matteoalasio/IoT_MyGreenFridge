@@ -1,1 +1,1 @@
-{"broker_IP": "localhost", "broker_port": 1883, "web_services": [], "users": [{"ID": "letizia", "password": "letipsw", "nickname": "Letizia", "ID_bot": 598550276}], "fridges": [{"ID": "5678", "user": "letizia", "sensors": [], "products": [], "wasted": [], "alarm_status": "off", "insert-timestamp": 1591540209.513149, "IP": ["192.168.1.131"], "port": 8082}], "last_edit": 1591540217.339036}
+{"broker_IP": "192.168.1.136", "broker_port": 1883, "web_services": [], "users": [], "fridges": [], "last_edit": 0}
