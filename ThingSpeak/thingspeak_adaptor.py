@@ -109,6 +109,81 @@ class HumidityThread(threading.Thread):
             time.sleep(11)
 
 
+
+class ControlThread(threading.Thread):
+
+        def __init__(self, catalogIP, catalogPort, initFridges, brokerIP, brokerPort):
+
+            threading.Thread.__init__(self)
+
+            self.catalogIP = catalogIP
+            self.catalogPort = catalogPort
+            self.initFridges = initFridges
+            self.broker_IP = brokerIP
+            self.broker_port = brokerPort
+
+
+        def run(self):
+
+
+            catalog_URL = "http://" + self.catalogIP + ":" + self.catalogPort + '/'
+            oldFridges = self.initFridges
+
+            while True:
+
+                # retrieve all the fridges from the Catalog
+                r = requests.get(catalog_URL + "fridges")
+                i=0
+
+                dictCurrFridges = r.json() # fridges is a Python dictionary
+                currFridges = []
+                for fridge in dictCurrFridges["fridges"]:
+                    currFridges.append(fridge["ID"])
+
+
+                # get new fridges that have been added
+                diffFridges = list(set(currFridges) - set(oldFridges))
+
+                #listThreads = threading.enumerate()
+                #print(listThreads)
+
+                for fridge_ID in diffFridges:
+
+                    for f in dictCurrFridges["fridges"]:
+                        if fridge_ID == f["ID"]:
+                            userID = f["user"]
+                            fridgeID = f["ID"]
+                            fridgeAPI = f["API"]
+
+                            client_ID = "client_"+str(i)
+                            i = i+1
+
+                            # Taking the wasted products here
+                            try:
+                                r3 = requests.get(catalog_URL+"wasted?Fridge_ID="+fridgeID)
+
+                                wasted_json = r3.json()
+
+                                value = len(wasted_json["Wasted_products"])
+                                data = urllib.request.urlopen("https://api.thingspeak.com/update?api_key="+fridgeAPI+"&field3="+str(value))
+                                print ("Wasted products updated on ThingSpeak")
+                            except requests.RequestException as err:
+
+                                sys.exit("ERROR: did not find the list of wasted products")
+
+
+                            tsdm = ThingSpeakDataManager(client_ID, userID, fridgeID, brokerIP, brokerPort)
+                            tsdm.start()
+                            tempThread = TemperatureThread(tsdm, userID, fridgeID, fridgeAPI, catalogURL)
+                            tempThread.start()
+                            humThread = HumidityThread(tsdm, userID, fridgeID, fridgeAPI, catalogURL)
+                            humThread.start()
+
+
+
+                time.sleep(60*60)
+                oldFridges = currFridges.copy()
+
 if __name__ == "__main__":
 
     conf = {
@@ -153,31 +228,7 @@ if __name__ == "__main__":
     except requests.RequestException as err:
         sys.exit("ERROR: cannot retrieve the info about the fridges.")
 
-    i = 0
-    for f in fridges['fridges']:
+    initFridges = []
 
-        userID = f["user"]
-        fridgeID = f["ID"]
-        fridgeAPI = f["API"]
-        print(fridgeID)
-        print(fridgeAPI)
-
-        # Taking the wasted products here
-        try:
-            r3 = requests.get(catalogURL+"/wasted?Fridge_ID="+fridgeID)
-            wasted_json = r3.json()
-            value = len(wasted_json["Wasted_products"])
-            data = urllib.request.urlopen("https://api.thingspeak.com/update?api_key="+fridgeAPI+"&field3="+str(value))
-            print ("Wasted products updated on ThingSpeak")
-        except requests.RequestException as err:
-            sys.exit("ERROR: did not find the list of wasted products")
-
-        client_ID = "client_"+str(i)
-        i = i+1
-
-        tsdm = ThingSpeakDataManager(client_ID, userID, fridgeID, brokerIP, brokerPort)
-        tsdm.start()
-        tempThread = TemperatureThread(tsdm, userID, fridgeID, fridgeAPI, catalogURL)
-        tempThread.start()
-        humThread = HumidityThread(tsdm, userID, fridgeID, fridgeAPI, catalogURL)
-        humThread.start()
+    controlThread = ControlThread(catalogIP, catalogPort, initFridges, brokerIP, brokerPort)
+    controlThread.start()
