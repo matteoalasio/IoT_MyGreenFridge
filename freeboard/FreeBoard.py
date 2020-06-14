@@ -7,13 +7,17 @@ class FreeBoard:
 
 	exposed = True
 
-	def GET(self):
-		index_file = open("index.html")
+	def GET(self, *uri, **params):
+
+		userID = params["userID"]
+		fridgeID = params["fridgeID"]
+		index = "index_"+userID+"_"+fridgeID+".html"
+		index_file = open(index)
 		return index_file.read()
 
 	def POST(self, *uri, **params):
 		json_string = params['json_string']
-		file = open("dashboard/dashboard.json", 'w')
+		file = open("dashboard/dashboard.json", 'w+')
 		file.write(json_string)
 
 if __name__ == '__main__':

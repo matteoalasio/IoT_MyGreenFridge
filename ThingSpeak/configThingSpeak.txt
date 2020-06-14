@@ -1,1 +1,0 @@
-{"catalogIP":"localhost", "catalogPort": "8080", "userID": "1234", "fridges": [{"fridgeID" : "5678", "API" : "PM5FIRRRHSDYV80C"}]}
