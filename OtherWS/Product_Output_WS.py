@@ -25,7 +25,9 @@ class ProductOutputREST(object):
 			product_ID = params["product_name"]
 			brand = params["brands"]
 
-			print("wasted ricevuto")
+			print(userID)
+			print(Fridge_ID)
+			print("A product to remove from the fridge has been received")
 
 			r = requests.get(self.catalog_URL + 'user?ID=' + str(userID))
 								  
@@ -34,7 +36,7 @@ class ProductOutputREST(object):
 			user = json.loads(detail_user['user'])
 			ID_bot = user['ID_bot']
 
-			print ("get al telegram bot")
+			#print ("get al telegram bot")
 			# richiesta BOT
 
 			r2 = requests.get('https://api.telegram.org/bot' + self.bot_Token + '/sendMessage?chat_id=' + str(ID_bot) +

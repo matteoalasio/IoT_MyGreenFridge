@@ -40,15 +40,14 @@ class ProductsAdaptorREST(object):
 
 		json_body = cherrypy.request.body.read()
 		body = json.loads(json_body) #(exp date)
+		print("Expiration date:")
 		print (body)
 		if uri[0] == 'add_expiration':
 			product_ID = params['Product_ID']
 			fridge_ID = params['Fridge_ID']
-			print(catalog_URL)
-			print(json.dumps(body))
 			#/add_expiration?Fridge_ID=<IDFridge>&Product_ID=<IDProduct>
 			r3 = requests.post(self.catalog_URL + "add_expiration?Fridge_ID=" + fridge_ID + "&Product_ID=" + product_ID, data=json.dumps(body))
-			print("data di scadenza aggiunta al frigo")
+			print("Expiration date added to fridge")
 
 		if uri[0] == 'add_wasted':
 
@@ -60,7 +59,7 @@ class ProductsAdaptorREST(object):
 				
 
 				r3 = requests.post(self.catalog_URL + "add_wasted?Fridge_ID=" + fridge_ID, data=json.dumps(corpo))
-				print("prodotto rimosso")
+				print("Wasted product removed from fridge")
 				
 			elif body["status"] == "consumed":
 
@@ -70,7 +69,7 @@ class ProductsAdaptorREST(object):
 					"&month=" + body["expiration_date"]["month"] +
 					"&year=" + body["expiration_date"]["year"])
 				r11 = requests.delete(catalog_url_delete)
-				print("prodotto rimosso dal frigo")
+				print("Consumed product removed from fridge")
 
 
 				
@@ -132,7 +131,7 @@ class ProductsAdaptorMQTT:
 
 		if (msg.topic == "MyGreenFridge/" + self.userID + "/" + self.fridgeID + "/EAN0"):
 
-			print("prodotto da inserire ricevuto")
+			print("A new product to insert in the fridge has been received")
 
 				   # BARCODE CONVERSION WS ---- ottieni lista Prod_ID Brand
 				   # 8076809531191 EAN EXAMPLE
@@ -154,26 +153,26 @@ class ProductsAdaptorMQTT:
 
 			catalog_url = "http://" + self.catalog_IP + ":" + self.catalog_Port + "/"
 			r1 = requests.post(catalog_url + "add_product?Fridge_ID=" + self.fridgeID, data = json.dumps(body))
-			print("prodotto aggiunto al catalog")
+			print("Product added to Catalog")
 
 			# GET AL PROD_INPUT_WS per ricavare expiratio_date
 			# /insert_product?product_name=<name>&brands=<brand>
 
 			r2 = requests.get(self.url_product_input_WS  + "insert_product?FridgeID=" + self.fridgeID + "&userID=" + self.userID + "&product_name=" + prod_in["product"] + "&brands=" + prod_in["brand"])
 
-			print("get al ws fatta")
+			print("Expiration date has been requested")
 
 			#####
 
 		if (msg.topic == "MyGreenFridge/" + self.userID + "/" + self.fridgeID + "/EAN1"):
 
-			print("prodotto da eliminare ricevuto")
+			print("A product to remove from the fridge has been received")
 
 				   # BARCODE CONVERSION
 			message = json.loads(msg.payload.decode("utf-8"))
 # 			EAN_IN = (msg.payload)
 			print(message)
-			print(message["EAN1"])
+			#print(message["EAN1"])
 
 			# GET al barcode conversion url: - /product?EAN=<ean>
 
@@ -192,7 +191,7 @@ class ProductsAdaptorMQTT:
 
 			r21 = requests.get(self.url_product_output_WS  + "delete_product?FridgeID=" + self.fridgeID + "&userID=" + self.userID + "&product_name=" + prod_out["product"] + "&brands=" + prod_out["brand"])
 
-			print("get al ws fatta")
+			print("Consumed or wasted has been requested")
 
 	def start(self):
 		# manage connection to broker

@@ -34,10 +34,12 @@ class ProductInputREST(object):
 			detail_user = r.json()
 			user = json.loads(detail_user['user'])
 			ID_bot = user['ID_bot']
-			print(ID_bot)
-			print(userID)
+			
 
-			print ("prodotto da inserire ricevuto")
+			print(userID)
+			print(Fridge_ID)
+
+			print ("A new product to insert in the fridge has been received")
 			# richiesta BOT
 
 			r2 = requests.get('https://api.telegram.org/bot' + self.bot_Token + '/sendMessage?chat_id=' + str(ID_bot) +
