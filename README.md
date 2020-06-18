@@ -18,6 +18,6 @@ My Green Fridge offers the following functionalities:
 
 ###### System actors and communications:
 A diagram describing all the system actors and communications is available here:
-! [alt text] (https://github.com/[username]/[reponame]/blob/[branch]/image.jpg?raw=true)
+! [alt text] (https://github.com/letiziabergamasco/IoT_MyGreenFridge/blob/master/UseCaseDiagram.png?raw=true)
 
 
