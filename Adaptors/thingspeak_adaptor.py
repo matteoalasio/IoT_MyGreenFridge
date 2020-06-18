@@ -7,6 +7,7 @@ import sys
 import urllib.request
 import cherrypy
 import threading
+import socket
 
 class ThingSpeakDataManager:
 
@@ -162,7 +163,7 @@ class ThingSpeakThread(threading.Thread):
 
 				#value = len(wasted_json["Wasted_products"])
 				#data = urllib.request.urlopen("https://api.thingspeak.com/update?api_key="+self.fridgeAPI+"&field3="+str(value))
-				print ("Wasted products updated on ThingSpeak")
+				print ("Wasted products retrieved")
 			
 			except requests.RequestException as err:
 				print("ERROR: did not find the list of wasted products")
@@ -180,6 +181,31 @@ class ThingSpeakThread(threading.Thread):
 				print("ERROR: could not update the values on ThingSpeak")
 
 			time.sleep(15)
+
+class RegistrationThread(threading.Thread):
+		
+		def __init__(self, catalogIP, catalogPort, devIP, devPort, nameWS):
+			
+			threading.Thread.__init__(self)
+			self.catalogIP = catalogIP
+			self.catalogPort = catalogPort
+			self.devIP = devIP
+			self.devPort = devPort
+			self.nameWS = nameWS
+		
+		def run(self):
+			url = "http://"+ self.catalogIP + ":"+ self.catalogPort + "/add_WS"
+			while True:
+
+				dictWS = {"name": self.nameWS,
+							"IP": self.devIP,
+							"port": self.devPort}
+				jsonWS = json.dumps(dictWS)
+				r = requests.post(url, data=jsonWS)
+				
+				print(self.nameWS + " registered.")
+
+				time.sleep(60)
 
 class ControlThread(threading.Thread):
 
@@ -270,6 +296,16 @@ if __name__ == "__main__":
 
 	print("Catalog IP is: " + catalogIP)
 	print("Catalog port is " + catalogPort)
+
+	# get IP address
+	s = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
+	s.connect(("8.8.8.8", 80))
+	devIP = s.getsockname()[0]
+	devPort = 8676
+	nameWS = "ThingSpeakAdaptorWS"
+	# register the web service on the Catalog
+	regThread = RegistrationThread(catalogIP, catalogPort, devIP, devPort, nameWS)
+	regThread.start()
 
 	# retrieve the broker IP and the broker port from the Catalog
 	catalogURL = "http://" + catalogIP + ":" + catalogPort

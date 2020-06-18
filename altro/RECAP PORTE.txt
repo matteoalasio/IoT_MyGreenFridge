@@ -5,6 +5,7 @@ DeviceConnectorWS : 8082
 
 FridgeStatusAdaptor: 8585
 ProductAdaptor: 8586
+ThingSpeakAdaptor: 8676
 
 TemperatureWS : 8587
 HumidityWS: 8487
@@ -16,3 +17,6 @@ ExpirationAlarmWS: 8684
 BarcodeConversionWS: 8689
 Product_InputWS: 8690
 Product_OutputWS: 8691
+
+FreeBoard: 8081
+TelegramBot: 8678
