@@ -18,6 +18,7 @@ My Green Fridge offers the following functionalities:
 
 ###### System actors and communications:
 The system has been developed following a microservices approach. Two communication protocols are exploited: MQTT, based on a publish/subscribe paradigm, and REST, based on a request/response paradigm. A diagram describing all the system actors and communications is available here:
+
 ![alt text](https://github.com/letiziabergamasco/IoT_MyGreenFridge/blob/master/UseCaseDiagram.png?raw=true)
 
 The Python scripts corresponding to each microservice are listed below:
