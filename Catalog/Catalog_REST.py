@@ -68,7 +68,7 @@ class Catalog_REST:
     exposed = True
 
     def __init__(self):
-        self.catalog = Catalog("test_file_2.json")
+        self.catalog = Catalog("Catalog.json")
 
 
 
