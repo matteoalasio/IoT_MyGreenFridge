@@ -1,3 +1,10 @@
+# ----------------------------------------------------------------------
+# Author: Letizia Bergamasco
+# 
+# Description: main functions of the Device Connector, allowing to
+# 	integrate the Raspberry Pi board into the platform.
+# ----------------------------------------------------------------------
+
 import Adafruit_DHT
 import time
 import select
@@ -21,7 +28,7 @@ class DeviceConnector(object):
 		self.dht_sensor = Adafruit_DHT.DHT22
 		
 		# camera0 path (picamera)
-		self.camera0 = "/dev/video1"
+		self.camera0 = "/dev/video0"
 		
 		# camera1 path (usb camera)
 		self.camera1 = "/dev/video1"

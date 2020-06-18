@@ -1,3 +1,14 @@
+# ----------------------------------------------------------------------
+# Author: Letizia Bergamasco
+# 
+# Description: Barcode Conversion provides the mapping from EAN Code of
+#   a product to its description through REST Web Services.
+#   - GET:
+#       > /product?EAN=<ean> --> given an EAN code as a parameter, it
+#                               returns the corresponding product's
+#                               name and brand.
+# ----------------------------------------------------------------------
+
 import cherrypy
 import json
 import socket

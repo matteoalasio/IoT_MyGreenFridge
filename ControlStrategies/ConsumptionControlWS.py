@@ -1,3 +1,17 @@
+# ----------------------------------------------------------------------
+# Author: Letizia Bergamasco
+# 
+# Description: Consumption Control is a control strategy that manages
+# 	the images of the products removed from the fridge. It works both as
+# 	an MQTT subscriber, to receive the images from the second webcam, and
+# 	as an MQTT publisher, to return the corresponding EAN codes to the
+# 	Products Adaptor.
+#   - MQTT subscriber on topics:
+#       > MyGreenFridge/<userID>/<fridgeID>/camera1
+#   - MQTT publisher on topics:
+#       > MyGreenFridge/<userID>/<fridgeID>/EAN1
+# ----------------------------------------------------------------------
+
 from ProductsLib import *
 import socket
 import json
@@ -15,7 +29,7 @@ if __name__ == '__main__':
 
 	# read configuration file
 	try:
-		configFile = open("configConsumptionControl.txt", "r")
+		configFile = open("../configSystem.json", "r")
 		configJson = configFile.read()
 		configDict = json.loads(configJson)
 		configFile.close()

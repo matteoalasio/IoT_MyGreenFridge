@@ -1,3 +1,10 @@
+# ----------------------------------------------------------------------
+# Author: Letizia Bergamasco
+# 
+# Description: main functions used by the Products Control and the
+# Consumption Control control strategies.
+# ----------------------------------------------------------------------
+
 import pybase64
 from pyzbar.pyzbar import decode
 import io
