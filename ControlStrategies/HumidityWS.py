@@ -148,11 +148,11 @@ class RegistrationThread(threading.Thread):
 if __name__ == '__main__':
 
     #Open file of configuration, including the data of the catalog
-    file = open("Configuration.txt","r")
+    file = open("../configSystem.json","r")
     info = json.loads(file.read())
 
-    catalog_IP = info["catalog_IP"]
-    catalog_Port = info["catalog_port"]
+    catalog_IP = info["catalogIP"]
+    catalog_Port = ":" + info["catalogPort"] + "/"
 
     file.close()
 
