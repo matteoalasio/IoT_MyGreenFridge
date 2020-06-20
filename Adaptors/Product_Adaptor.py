@@ -225,7 +225,7 @@ class RegistrationThread(threading.Thread):
 
 			print("ProductAdaptorWS registered.")
 
-			time.sleep(60*60)
+			time.sleep(60)
 
 
 class ProductsAdaptorThread(threading.Thread):

@@ -87,7 +87,7 @@ class RegistrationThread(threading.Thread):
 
                 print("ExpirationAlarmWS registered.")
 
-                time.sleep(60*60)
+                time.sleep(60)
 
 class ControlThread(threading.Thread):
 

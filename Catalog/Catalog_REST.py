@@ -2,6 +2,7 @@ import cherrypy
 import json
 import time
 import requests
+import threading
 from Catalog import *
 
 """
@@ -67,8 +68,8 @@ DELETE:
 class Catalog_REST:
     exposed = True
 
-    def __init__(self):
-        self.catalog = Catalog("Catalog.json")
+    def __init__(self, catalog):
+        self.catalog = catalog
 
 
 
@@ -421,6 +422,28 @@ class Catalog_REST:
             raise cherrypy.HTTPError(400)
 
 
+class RemoveInactiveThread(threading.Thread):
+        
+        def __init__(self, catalog):
+            
+            threading.Thread.__init__(self)
+            self.catalog = catalog
+        
+        def run(self):
+            
+            while True:
+
+                # remove inactive web services
+                self.catalog.remove_inactive_ws()
+
+                # remove inactive fridges
+                self.catalog.remove_inactive_fridge()
+                
+                print("Inactive fridges and web services removed.")
+
+                time.sleep(5*60)
+
+
 ########################################## MAIN FUNCTION ############################################
 
 if __name__ == '__main__':
@@ -431,9 +454,13 @@ if __name__ == '__main__':
         }
     }
 
+    catalog = Catalog("Catalog.json")
 
-cherrypy.tree.mount(Catalog_REST(), '/', conf)
-cherrypy.config.update({'server.socket_host': '0.0.0.0'})
-cherrypy.config.update({'server.socket_port': 8080})
-cherrypy.engine.start()
-cherrypy.engine.block()
+    inactiveThread = RemoveInactiveThread(catalog)
+    inactiveThread.start()
+
+    cherrypy.tree.mount(Catalog_REST(catalog), '/', conf)
+    cherrypy.config.update({'server.socket_host': '0.0.0.0'})
+    cherrypy.config.update({'server.socket_port': 8080})
+    cherrypy.engine.start()
+    cherrypy.engine.block()

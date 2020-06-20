@@ -48,10 +48,6 @@ class ProductInputREST(object):
 
 
 
-		# richiedere exp_date mediante BOT
-		# mystring = "nome prodotto = " + product_ID + "	brand = " + brand
-
-
 	def POST (self, *uri, **params):
 
 		pass
@@ -83,7 +79,7 @@ class RegistrationThread(threading.Thread):
 
 				print("ProductInputWS registered.")
 
-				time.sleep(60*60)
+				time.sleep(60)
 
 
 
@@ -119,7 +115,7 @@ if __name__ == '__main__':
 	print("Catalog IP is: " + catalogIP)
 	print("Catalog port is " + catalogPort)
 
-	file2 = open("botconfig.txt", "r")
+	file2 = open("../configBot.json", "r")
 	info2 = json.loads(file2.read())
 	bot_Token = info2["token"]
 	file2.close()

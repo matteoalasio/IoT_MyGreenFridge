@@ -34,7 +34,7 @@ class MyGreenFridgeBot:
 		self.catalogport = str(dict_system['catalogPort'])
 		self.bot = telepot.Bot(token=str(self.token))
 
-		
+
 		# get IP address
 		s = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
 		s.connect(("8.8.8.8", 80))
@@ -60,13 +60,16 @@ class MyGreenFridgeBot:
 				self.bot.sendMessage(chat_id, "Hello " + name + "! Please register yourself with /register to get started. If you need more infos, use the command /info.")
 
 			elif command == '/info':
-				self.bot.sendMessage(chat_id, """You can register yourself on the system with: /register. Remember to use your user_ID! \n
+				self.bot.sendMessage(chat_id, """You can register yourself on the system with /register. Remember to use your user_ID! \n
 To associate a fridge to your user, use the command /add_fridge.\n
-Don't you remember you password? No problem! Use the command /password. \n
+Do you not remember your password? No problem! Use the command /password. \n
 To change your password, use the command /update_pw.\n
-To check the status of your fridge, use the command /check. The available infos are related to humidity, fridge, products in the fridge and the products that you have wasted.\n
 To delete yourself from the system, use the command /delete. \n
+To check the status of your fridge, use the command /check. The available infos are related to humidity, fridge, products in the fridge and the products that you have wasted.\n
 To be informed when the temperature becomes out of range, please set it with /alarm. \n
+You are notified when a new product is inserted in the fridge. Use the command /add_product to add it in the system. \n
+You are notified also when you remove a product. You can use the command /add_wasted to inform the system if the product has been wasted or not.\n
+To access to your ThingSpeak page, please use the command /ThingSpeak. \n
 				 """)
 
 			#Registration of a new user
@@ -547,16 +550,16 @@ To be informed when the temperature becomes out of range, please set it with /al
 			self.bot.sendMessage(chat_id, "The alarm has been turned OFF, as you requested.")
 
 class RegistrationThread(threading.Thread):
-		
+
 		def __init__(self, catalogIP, catalogPort, devIP, devPort, nameWS):
-			
+
 			threading.Thread.__init__(self)
 			self.catalogIP = catalogIP
 			self.catalogPort = catalogPort
 			self.devIP = devIP
 			self.devPort = devPort
 			self.nameWS = nameWS
-		
+
 		def run(self):
 			url = "http://"+ self.catalogIP + ":"+ self.catalogPort + "/add_WS"
 			while True:
@@ -566,7 +569,7 @@ class RegistrationThread(threading.Thread):
 							"port": self.devPort}
 				jsonWS = json.dumps(dictWS)
 				r = requests.post(url, data=jsonWS)
-				
+
 				print(self.nameWS + " registered.")
 
 				time.sleep(60)
@@ -575,7 +578,3 @@ class RegistrationThread(threading.Thread):
 if __name__ == '__main__':
 
 	Fridge_Bot = MyGreenFridgeBot("configBot.json", "configSystem.json")
-
-
-	while 1:
-		time.sleep(10)

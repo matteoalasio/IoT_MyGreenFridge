@@ -36,17 +36,12 @@ class ProductOutputREST(object):
 			user = json.loads(detail_user['user'])
 			ID_bot = user['ID_bot']
 
-			#print ("get al telegram bot")
-			# richiesta BOT
 
 			r2 = requests.get('https://api.telegram.org/bot' + self.bot_Token + '/sendMessage?chat_id=' + str(ID_bot) +
 										  '&text=' + 'The product ' + str(product_ID) + ' has been removed from the fridge ' + str(Fridge_ID) + 
 										  '. Please write /add_wasted and specify if it is wasted or not.')
 
 
-		# # richiedere exp_date mediante BOT
-		# mystring = "nome prodotto = " + product_name + "	brand = " + brand
-		# return mystring
 
 	def POST (self, *uri, **params):
 		pass
@@ -78,7 +73,7 @@ class RegistrationThread(threading.Thread):
 
 				print("ProductOutputWS registered.")
 
-				time.sleep(60*60)
+				time.sleep(60)
 
 
 
@@ -114,7 +109,7 @@ if __name__ == '__main__':
 	print("Catalog IP is: " + catalogIP)
 	print("Catalog port is " + catalogPort)
 
-	file2 = open("botconfig.txt", "r")
+	file2 = open("../configBot.json", "r")
 	info2 = json.loads(file2.read())
 	bot_Token = info2["token"]
 	file2.close()
